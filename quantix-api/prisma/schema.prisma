@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLEADO
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(EMPLEADO)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id                String              @id @default(uuid())
+  sku               String              @unique
+  name              String
+  cost              Float
+  price             Float
+  stock             Float               @default(0)
+  minStock          Float               @default(0)
+  createdAt         DateTime            @default(now())
+  InventoryMovement InventoryMovement[]
+}
+
+enum MovementKind {
+  IN
+  OUT
+}
+
+model InventoryMovement {
+  id          String       @id @default(uuid())
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id])
+  kind        MovementKind
+  quantity    Float
+  createdById String
+  createdAt   DateTime     @default(now())
+}
