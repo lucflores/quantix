@@ -1,1 +1,23 @@
-node_modules
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+coverage/
+
+# Prisma
+.prisma/
+prisma/dev.db
+prisma/dev.db-journal
+
+# Env / OS
+.env
+.env.local
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
