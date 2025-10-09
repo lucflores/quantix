@@ -4,11 +4,7 @@ import { verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-/**
- * POST /api/movements
- * body: { productId, kind: "IN"|"OUT", quantity }
- * Usa el usuario del token como createdById
- */
+/** Crear un movimiento de inventario */
 router.post("/", verifyToken, async (req, res) => {
   try {
     const { productId, kind, quantity } = req.body;
