@@ -1,12 +1,18 @@
 import express from "express";
 import { prisma } from "../lib/prisma.js";
-import { verifyToken, requireRole } from "../middleware/auth.js";import { Prisma } from "@prisma/client";
+import { verifyToken } from "../middleware/auth.js";
+import { can } from "../middleware/authz.js"; // hoy no limita si AUTHZ=off
+import { Prisma } from "@prisma/client";
 
 const router = express.Router();
 
-//Listado de productos
+/**
+ * GET /api/v1/products?q=&page=&limit=&includeInactive=1
+ * - Solo activos por defecto
+ * - Búsqueda por sku o nombre
+ * - Paginación
+ */
 router.get("/", verifyToken, async (req, res) => {
-  // filtros
   const includeInactive = req.query.includeInactive === "1";
   const q = (req.query.q || "").toString().trim();
   const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -47,21 +53,32 @@ router.get("/", verifyToken, async (req, res) => {
   });
 });
 
-//Crea un producto 
-router.post("/", verifyToken, requireRole?.("ADMIN") ?? ((_, __, next)=>next()), async (req, res) => {
+/**
+ * POST /api/v1/products
+ * Crea producto.
+ * Nota: el stock inicial debería ser 0 (los ingresos van por /movements).
+ */
+router.post("/", verifyToken, can("product:create"), async (req, res) => {
   try {
-    const { sku, name, cost, price, stock = 0, minStock = 0 } = req.body;
+    const { sku, name, cost, price, minStock = 0 } = req.body;
+
+    if (!sku || !name) {
+      return res.status(400).json({ error: "sku y name son obligatorios" });
+    }
+
     const data = {
       sku,
       name,
       cost: new Prisma.Decimal(cost),
       price: new Prisma.Decimal(price),
-      stock: new Prisma.Decimal(stock),
+      stock: new Prisma.Decimal(0),               // ← no seteamos stock acá
       minStock: new Prisma.Decimal(minStock),
     };
-    if (data.cost.lt(0) || data.price.lt(0) || data.stock.lt(0) || data.minStock.lt(0)) {
+
+    if (data.cost.lt(0) || data.price.lt(0) || data.minStock.lt(0)) {
       return res.status(400).json({ error: "Valores negativos no permitidos" });
     }
+
     const p = await prisma.product.create({ data });
     res.json(p);
   } catch (e) {
@@ -69,19 +86,31 @@ router.post("/", verifyToken, requireRole?.("ADMIN") ?? ((_, __, next)=>next()),
   }
 });
 
-//Actualiza un producto
-router.put("/:id", verifyToken, requireRole?.("ADMIN") ?? ((_, __, next)=>next()), async (req, res) => {
+/**
+ * PUT /api/v1/products/:id
+ * Actualiza datos (no permite modificar stock acá).
+ */
+router.put("/:id", verifyToken, can("product:update"), async (req, res) => {
   try {
     const { id } = req.params;
     const data = {};
-    for (const k of ["sku","name"]) if (req.body[k] !== undefined) data[k] = req.body[k];
-    for (const k of ["cost","price","stock","minStock"]) {
+
+    // Campos texto
+    for (const k of ["sku", "name"]) {
+      if (req.body[k] !== undefined) data[k] = req.body[k];
+    }
+
+    // Campos decimales (sin stock)
+    for (const k of ["cost", "price", "minStock"]) {
       if (req.body[k] !== undefined) {
         const val = new Prisma.Decimal(req.body[k]);
-        if (val.lt(0)) return res.status(400).json({ error: `${k} no puede ser negativo` });
+        if (val.lt(0)) {
+          return res.status(400).json({ error: `${k} no puede ser negativo` });
+        }
         data[k] = val;
       }
     }
+
     const p = await prisma.product.update({ where: { id }, data });
     res.json(p);
   } catch (e) {
@@ -89,36 +118,62 @@ router.put("/:id", verifyToken, requireRole?.("ADMIN") ?? ((_, __, next)=>next()
   }
 });
 
-// Cambia el estado activo/inactivo de un producto
-router.patch("/:id/status", verifyToken, async (req, res) => {
+/**
+ * PATCH /api/v1/products/:id/status
+ * Activa/Desactiva producto.
+ * Regla: no se puede desactivar si stock > 0
+ */
+router.patch("/:id/status", verifyToken, can("product:status"), async (req, res) => {
   try {
     const { id } = req.params;
     const { active } = req.body;
+
     if (typeof active !== "boolean") {
       return res.status(400).json({ error: "Campo 'active' inválido" });
     }
 
-    // regla de negocio: no permitir desactivar con stock > 0
     const p = await prisma.product.findUnique({ where: { id } });
-     if (!p) return res.status(404).json({ error: "No encontrado" });
-     if (!active && p.stock.gt ? p.stock.gt(0) : p.stock > 0) {
-       return res.status(409).json({ error: "No se puede desactivar con stock > 0" });
-     }
+    if (!p) return res.status(404).json({ error: "No encontrado" });
+
+    // Stock es Decimal: usá comparación Decimal segura
+    const hasStock = p.stock instanceof Prisma.Decimal
+      ? p.stock.gt(new Prisma.Decimal(0))
+      : Number(p.stock) > 0;
+
+    if (!active && hasStock) {
+      return res.status(409).json({ error: "No se puede desactivar con stock > 0" });
+    }
 
     const updated = await prisma.product.update({
       where: { id },
-      data: { active }
+      data: { active },
     });
+
     res.json(updated);
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
 });
 
-// Elimina (desactiva) un producto
-router.delete("/:id", verifyToken, async (req, res) => {
+/**
+ * DELETE /api/v1/products/:id
+ * Soft delete: desactiva el producto.
+ */
+router.delete("/:id", verifyToken, can("product:status"), async (req, res) => {
   try {
     const { id } = req.params;
+
+    const p = await prisma.product.findUnique({ where: { id } });
+    if (!p) return res.status(404).json({ error: "No encontrado" });
+
+    const hasStock = p.stock instanceof Prisma.Decimal
+      ? p.stock.gt(new Prisma.Decimal(0))
+      : Number(p.stock) > 0;
+
+    if (hasStock) {
+      return res.status(409).json({ error: "No se puede desactivar con stock > 0" });
+    }
+
     await prisma.product.update({ where: { id }, data: { active: false } });
     res.json({ ok: true, message: "Producto desactivado" });
   } catch (e) {
@@ -126,5 +181,4 @@ router.delete("/:id", verifyToken, async (req, res) => {
   }
 });
 
-
-export default router;j
+export default router;
