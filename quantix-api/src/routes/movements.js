@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "../lib/prisma.js";
 import { verifyToken } from "../middleware/auth.js";
+import { Prisma } from "@prisma/client";
 
 const router = express.Router();
 
@@ -8,8 +9,8 @@ const router = express.Router();
 router.post("/", verifyToken, async (req, res) => {
   try {
     const { productId, kind, quantity } = req.body;
-    const qty = Number(quantity);
-    if (!productId || !["IN", "OUT"].includes(kind) || isNaN(qty) || qty <= 0) {
+    const qtyDec = new Prisma.Decimal(quantity);
+    if (!productId || !["IN", "OUT"].includes(kind) || isNaN(qtyDec) || qty <= 0) {
       return res.status(400).json({ error: "Datos inválidos" });
     }
 
@@ -17,7 +18,7 @@ router.post("/", verifyToken, async (req, res) => {
       const product = await tx.product.findUnique({ where: { id: productId } });
       if (!product) throw new Error("Producto no encontrado");
 
-      if (kind === "OUT" && product.stock < qty) {
+      if (kind === "OUT" && product.stock < qtyDec) {
         throw new Error("Stock insuficiente");
       }
 
@@ -26,7 +27,7 @@ router.post("/", verifyToken, async (req, res) => {
         data: {
           productId,
           kind,
-          quantity: qty,
+          quantity: qtyDec,
           createdById: req.user.id,
         },
       });
@@ -35,7 +36,9 @@ router.post("/", verifyToken, async (req, res) => {
       await tx.product.update({
         where: { id: productId },
         data: {
-          stock: { increment: kind === "IN" ? qty : -qty },
+          stock: kind === "IN"
+              ? { increment: qtyDec }
+              : { decrement: qtyDec },
         },
       });
 

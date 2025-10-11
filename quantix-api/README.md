@@ -13,3 +13,28 @@ cp .env.example .env
 npm install
 npx prisma migrate dev --name init
 npm run dev
+
+## Endpoints (v1)
+Auth
+- POST /api/v1/auth/register
+- POST /api/v1/auth/login
+
+Productos (JWT)
+- GET    /api/v1/products?q=&page=&limit=&includeInactive=1
+- POST   /api/v1/products
+- PUT    /api/v1/products/:id
+- PATCH  /api/v1/products/:id/status   { "active": true|false }  # Regla: no desactivar con stock > 0
+
+Movimientos (si aplica)
+- POST   /api/v1/movements  { productId, kind: IN|OUT, quantity }
+- GET    /api/v1/movements  (últimos 50)
+
+Infra
+- GET /health → { ok, uptime }
+- Seguridad: helmet + rate-limit en /api/v1/auth
+- Logs: morgan
+
+DB
+- PostgreSQL 16 (Docker)
+- Decimal(12,2) en dinero/stock
+- Product.active (soft delete)
