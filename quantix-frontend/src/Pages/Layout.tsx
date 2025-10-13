@@ -45,7 +45,7 @@ export default function Layout() {
               aria-labelledby="stockDropdown"
             >
               <li>
-                <Link className="dropdown-item" to="/stock/control">
+                <Link className="dropdown-item" to="/stock">
                   Control de stock
                 </Link>
               </li>
