@@ -7,6 +7,7 @@ import NewProduct from "./NewProduct";
 import Stock from "./Stock";
 import Home from "./Home";
 import Entry from "./Entry";
+import StockMov from "./StockMov";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/newproduct" element={<NewProduct />} />
         <Route path="/stock" element={<Stock />} />
         <Route path="/entry" element={<Entry />} />
+        <Route path="/stockmovements" element={<StockMov />} />
       </Route> 
 
       {/* Rutas sin layout */}

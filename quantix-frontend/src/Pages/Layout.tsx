@@ -50,7 +50,7 @@ export default function Layout() {
                 </Link>
               </li>
               <li>
-                <Link className="dropdown-item" to="/stock/movimientos">
+                <Link className="dropdown-item" to="/StockMovements">
                   Movimientos
                 </Link>
               </li>
