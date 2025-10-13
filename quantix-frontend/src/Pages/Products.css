@@ -1,17 +1,16 @@
-/* ====== Estructura general ====== */
-
-.home-header h6 {
-  font-weight: 600;
+/* ====== Tabla estilo "Home" ====== */
+.bg-light {
+  background-color: #f8f9fa;
 }
 
-.home-header a {
-  font-weight: 500;
+.rounded {
+  border-radius: 8px;
 }
 
-/* ====== Tabla ====== */
 .table {
   width: 100%;
   border-collapse: collapse;
+  background-color: #fff;
 }
 
 .table th,
@@ -31,13 +30,12 @@
   background-color: #f8f9fa;
 }
 
-/* ====== Botón ====== */
 .btn-primary {
-  background-color: var(--primary, #0d6efd);
-  border-color: var(--primary, #0d6efd);
+  background-color: var(--primary);
+  border-color: var(--primary);
 }
 
 .btn-primary:hover {
-  background-color: #0b5ed7;
-  border-color: #0a58ca;
+  background-color: #007bff;
+  border-color: #007bff;
 }

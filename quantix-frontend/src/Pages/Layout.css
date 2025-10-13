@@ -1,0 +1,97 @@
+/* ===== Estructura general ===== */
+.app-container {
+  display: flex;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100vh;
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+/* ===== Contenido principal ===== */
+.content {
+  margin-left: 250px; /* evita que se superponga el contenido */
+  width: calc(100% - 250px);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ===== Enlaces del sidebar ===== */
+.sidebar .nav-link {
+  font-weight: 500;
+  border-left: 3px solid transparent;
+  border-radius: 0 30px 30px 0;
+  padding: 8px 20px;
+  transition: all 0.3s ease;
+}
+
+.sidebar .nav-link:hover {
+  color: var(--primary);
+  background: #ffffff;
+  border-left: 3px solid var(--primary);
+}
+
+/* ===== Dropdown ===== */
+.sidebar .dropdown-item {
+  color: var(--dark);
+  border-left: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.sidebar .dropdown-item:hover {
+  color: var(--primary);
+  background: #ffffff;
+  border-left: 3px solid var(--primary);
+}
+
+/* ===== Header con perfil ===== */
+.profile-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+/* ===== Footer ===== */
+.layout-footer {
+  text-align: center;
+  padding: 15px;
+  background: var(--light);
+  border-top: 1px solid #dee2e6;
+  margin-top: auto;
+  font-size: 0.9rem;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 991.98px) {
+  .sidebar {
+    width: 200px;
+  }
+  .content {
+    margin-left: 200px;
+    width: calc(100% - 200px);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .sidebar {
+    display: none;
+  }
+  .content {
+    margin-left: 0;
+    width: 100%;
+  }
+}
