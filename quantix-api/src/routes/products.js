@@ -6,12 +6,18 @@ import { Prisma } from "@prisma/client";
 
 const router = express.Router();
 
-/**
- * GET /api/v1/products?q=&page=&limit=&includeInactive=1
- * - Solo activos por defecto
- * - Búsqueda por sku o nombre
- * - Paginación
- */
+const d2 = (v) =>
+  v instanceof Prisma.Decimal ? v.toFixed(2) : new Prisma.Decimal(v ?? 0).toFixed(2);
+
+const serializeProduct = (p) => ({
+  ...p,
+  cost: d2(p.cost),
+  price: d2(p.price),
+  stock: d2(p.stock),
+  minStock: d2(p.minStock),
+});
+
+// GET /api/v1/products?q=&page=&limit=&includeInactive=1
 router.get("/", verifyToken, async (req, res) => {
   const includeInactive = req.query.includeInactive === "1";
   const q = (req.query.q || "").toString().trim();
@@ -43,7 +49,7 @@ router.get("/", verifyToken, async (req, res) => {
   ]);
 
   res.json({
-    items,
+    items: items.map(serializeProduct),
     total,
     page,
     pages: Math.max(1, Math.ceil(total / limit)),
@@ -53,54 +59,58 @@ router.get("/", verifyToken, async (req, res) => {
   });
 });
 
-/**
- * POST /api/v1/products
- * Crea producto.
- * Nota: el stock inicial debería ser 0 (los ingresos van por /movements).
- */
+// POST /api/v1/products  (201)
 router.post("/", verifyToken, can("product:create"), async (req, res) => {
   try {
-    const { sku, name, cost, price, minStock = 0 } = req.body;
+    const { sku, name, cost, price } = req.body;
+    const minStock = req.body.minStock ?? 0;
 
     if (!sku || !name) {
       return res.status(400).json({ error: "sku y name son obligatorios" });
     }
 
-    const data = {
-      sku,
-      name,
-      cost: new Prisma.Decimal(cost),
-      price: new Prisma.Decimal(price),
-      stock: new Prisma.Decimal(0),               // ← no seteamos stock acá
-      minStock: new Prisma.Decimal(minStock),
-    };
-
-    if (data.cost.lt(0) || data.price.lt(0) || data.minStock.lt(0)) {
+    // Coerción/validación de decimales
+    const costD = new Prisma.Decimal(cost);
+    const priceD = new Prisma.Decimal(price);
+    const minStockD = new Prisma.Decimal(minStock);
+    if (costD.lt(0) || priceD.lt(0) || minStockD.lt(0)) {
       return res.status(400).json({ error: "Valores negativos no permitidos" });
     }
 
-    const p = await prisma.product.create({ data });
-    res.json(p);
+    const created = await prisma.product.create({
+      data: {
+        sku,
+        name,
+        cost: costD,
+        price: priceD,
+        stock: new Prisma.Decimal(0), // stock no se toca acá (solo por compras/ventas/movements)
+        minStock: minStockD,
+        active: true, // por si en Prisma no hay @default(true)
+      },
+    });
+
+    return res.status(201).json(serializeProduct(created));
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    // SKU único duplicado
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return res.status(409).json({ error: "SKU ya existe" });
+    }
+    return res.status(400).json({ error: e.message });
   }
 });
 
-/**
- * PUT /api/v1/products/:id
- * Actualiza datos (no permite modificar stock acá).
- */
+// PUT /api/v1/products/:id  (actualiza, 200 OK)
 router.put("/:id", verifyToken, can("product:update"), async (req, res) => {
   try {
     const { id } = req.params;
     const data = {};
 
-    // Campos texto
+    // Texto
     for (const k of ["sku", "name"]) {
       if (req.body[k] !== undefined) data[k] = req.body[k];
     }
 
-    // Campos decimales (sin stock)
+    // Decimales (sin stock)
     for (const k of ["cost", "price", "minStock"]) {
       if (req.body[k] !== undefined) {
         const val = new Prisma.Decimal(req.body[k]);
@@ -111,18 +121,18 @@ router.put("/:id", verifyToken, can("product:update"), async (req, res) => {
       }
     }
 
-    const p = await prisma.product.update({ where: { id }, data });
-    res.json(p);
+    const updated = await prisma.product.update({ where: { id }, data });
+    res.json(serializeProduct(updated));
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return res.status(409).json({ error: "SKU ya existe" });
+    }
+    return res.status(400).json({ error: e.message });
   }
 });
 
-/**
- * PATCH /api/v1/products/:id/status
- * Activa/Desactiva producto.
- * Regla: no se puede desactivar si stock > 0
- */
+// PATCH /api/v1/products/:id/status  (activar/desactivar, 200 OK)
+// Regla: no se puede desactivar si stock > 0
 router.patch("/:id/status", verifyToken, can("product:status"), async (req, res) => {
   try {
     const { id } = req.params;
@@ -135,12 +145,8 @@ router.patch("/:id/status", verifyToken, can("product:status"), async (req, res)
     const p = await prisma.product.findUnique({ where: { id } });
     if (!p) return res.status(404).json({ error: "No encontrado" });
 
-    // Stock es Decimal: usá comparación Decimal segura
-    const hasStock = p.stock instanceof Prisma.Decimal
-      ? p.stock.gt(new Prisma.Decimal(0))
-      : Number(p.stock) > 0;
-
-    if (!active && hasStock) {
+    const stockD = p.stock instanceof Prisma.Decimal ? p.stock : new Prisma.Decimal(p.stock);
+    if (!active && stockD.gt(0)) {
       return res.status(409).json({ error: "No se puede desactivar con stock > 0" });
     }
 
@@ -149,16 +155,13 @@ router.patch("/:id/status", verifyToken, can("product:status"), async (req, res)
       data: { active },
     });
 
-    res.json(updated);
+    res.json(serializeProduct(updated));
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
 });
 
-/**
- * DELETE /api/v1/products/:id
- * Soft delete: desactiva el producto.
- */
+// DELETE /api/v1/products/:id  (soft delete → desactivar, 200)
 router.delete("/:id", verifyToken, can("product:status"), async (req, res) => {
   try {
     const { id } = req.params;
@@ -166,11 +169,8 @@ router.delete("/:id", verifyToken, can("product:status"), async (req, res) => {
     const p = await prisma.product.findUnique({ where: { id } });
     if (!p) return res.status(404).json({ error: "No encontrado" });
 
-    const hasStock = p.stock instanceof Prisma.Decimal
-      ? p.stock.gt(new Prisma.Decimal(0))
-      : Number(p.stock) > 0;
-
-    if (hasStock) {
+    const stockD = p.stock instanceof Prisma.Decimal ? p.stock : new Prisma.Decimal(p.stock);
+    if (stockD.gt(0)) {
       return res.status(409).json({ error: "No se puede desactivar con stock > 0" });
     }
 

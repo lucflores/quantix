@@ -1,3 +1,4 @@
+// ---------- Generador y datasource ----------
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,21 +8,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------- Enums ----------
 enum Role {
   ADMIN
   EMPLEADO
 }
 
+enum MovementKind {
+  IN
+  OUT
+}
+
+// ---------- Modelos base ----------
 model User {
-  id             String          @id @default(uuid())
-  email          String          @unique
-  password       String
-  role           Role            @default(EMPLEADO)
-  active         Boolean         @default(true)
-  createdAt      DateTime        @default(now())
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  password           String
+  role               Role     @default(EMPLEADO)
+  active             Boolean  @default(true)
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  // relaciones
   passwordResets PasswordReset[]
 }
 
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ---------- Inventario / Productos ----------
 model Product {
   id        String   @id @default(uuid())
   sku       String   @unique
@@ -33,12 +55,10 @@ model Product {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  movements InventoryMovement[]
-}
-
-enum MovementKind {
-  IN
-  OUT
+  // relaciones inversas
+  movements     InventoryMovement[]
+  purchaseItems PurchaseItem[]
+  saleItems     SaleItem[]
 }
 
 model InventoryMovement {
@@ -51,12 +71,46 @@ model InventoryMovement {
   createdAt   DateTime     @default(now())
 }
 
-model PasswordReset {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  token     String   @unique
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
+// ---------- Compras ----------
+model Purchase {
+  id          String   @id @default(uuid())
+  supplier    String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  items PurchaseItem[]
+}
+
+model PurchaseItem {
+  id         String   @id @default(uuid())
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity Decimal @db.Decimal(12, 2)
+  unitCost Decimal @db.Decimal(12, 2)
+}
+
+// ---------- Ventas ----------
+model Sale {
+  id          String   @id @default(uuid())
+  customer    String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  items SaleItem[]
+}
+
+model SaleItem {
+  id     String @id @default(uuid())
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity  Decimal @db.Decimal(12, 2)
+  unitPrice Decimal @db.Decimal(12, 2)
 }
