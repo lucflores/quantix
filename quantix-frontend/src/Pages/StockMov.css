@@ -1,11 +1,11 @@
 /* ====== Estructura general ====== */
-
-.home-header h6 {
+.movimientos-header h6 {
   font-weight: 600;
 }
 
-.home-header a {
-  font-weight: 500;
+.movimientos-header input,
+.movimientos-header select {
+  font-size: 0.9rem;
 }
 
 /* ====== Tabla ====== */
@@ -31,13 +31,9 @@
   background-color: #f8f9fa;
 }
 
-/* ====== Botón ====== */
-.btn-primary {
-  background-color: var(--primary, #0d6efd);
-  border-color: var(--primary, #0d6efd);
-}
-
-.btn-primary:hover {
-  background-color: #0b5ed7;
-  border-color: #0a58ca;
+/* ====== Badges ====== */
+.badge {
+  font-size: 0.8rem;
+  padding: 0.4em 0.6em;
+  border-radius: 0.4rem;
 }

@@ -1,11 +1,11 @@
 /* ====== Estructura general ====== */
-
-.home-header h6 {
+.stock-header h6 {
   font-weight: 600;
 }
 
-.home-header a {
-  font-weight: 500;
+.stock-header input,
+.stock-header select {
+  font-size: 0.9rem;
 }
 
 /* ====== Tabla ====== */

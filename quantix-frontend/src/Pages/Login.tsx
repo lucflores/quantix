@@ -1,4 +1,3 @@
-import "./Login.css";
 
 export default function Login() {
   return (
@@ -12,12 +11,12 @@ export default function Login() {
           <div className="col-12 col-sm-8 col-md-6 col-lg-5 col-xl-4">
             <div className="bg-light rounded p-4 p-sm-5 my-4 mx-3">
               <div className="d-flex align-items-center justify-content-between mb-3">
-                <a href="#" className="">
-                  <h3 className="text-primary">
+                <a href="#" className="text-decoration-none">
+                  <h3 className="text-primary"> 
                     <i className=""></i>Quantix
                   </h3>
                 </a>
-                <h3>Ingresar</h3>
+                <h4>Ingresar</h4>
               </div>
 
               <div className="form-floating mb-3">
