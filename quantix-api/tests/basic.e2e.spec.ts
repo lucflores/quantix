@@ -1,4 +1,4 @@
-import request from 'supertest';
+import request from "supertest";
 
 const BASE = 'http://localhost:4000';
 const API  = `${BASE}/api/v1`;

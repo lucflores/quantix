@@ -131,5 +131,19 @@ model Customer {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  sales Sale[] @relation("SaleCustomer")
+  sales    Sale[]    @relation("SaleCustomer")
+  payments Payment[]
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  customerId  String
+  amount      Decimal  @db.Decimal(12, 2) // monto pagado (positivo)
+  method      String? // opcional: EFECTIVO/TRANSFERENCIA/etc.
+  reference   String? // nro. de recibo/transacción
+  date        DateTime @default(now())
+  createdById String
+  createdAt   DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
 }

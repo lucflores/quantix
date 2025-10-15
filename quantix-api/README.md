@@ -1,17 +1,194 @@
-Quantix API
+Quantix API — Backend (v1)
 
-Backend de gestión de productos, stock, compras y ventas.
-Stack: Node.js + Express + Prisma + PostgreSQL.
-Auth: JWT. Versionado: /api/v1/*.
+Backend completo de Quantix, sistema de gestión de stock, compras, ventas y cuenta corriente.
 
-Requisitos
+⚙️ Stack Tecnológico
+Área	Tecnología / Configuración
+Backend	Node.js + Express (ESM)
+ORM	Prisma ORM
+Base de Datos	PostgreSQL 16 (Docker quantix-db)
+Auth	JWT (bcrypt para hash)
+Seguridad	helmet · rate-limit · CORS (abierto en dev)
+Logs	morgan (dev / combined)
+Test	Jest + Supertest (E2E reales contra API)
+Versionado	/api/v1/*
+Feature Flag	AUTHZ=off (middleware can() pasivo)
 
-Node 18+
+🧱 Modelos Principales (Prisma)
+Enums
+enum Role { ADMIN EMPLEADO }
+enum MovementKind { IN OUT }
+enum PaymentMethod { EFECTIVO CTA_CTE }
 
-Docker (PostgreSQL) o Postgres local
+Entidades
 
-Setup rápido
-# 1 - Base de datos (Docker)
+Usuarios, productos, inventario, compras, ventas, clientes y pagos:
+
+model User {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  password           String
+  role               Role     @default(EMPLEADO)
+  active             Boolean  @default(true)
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  passwordResets     PasswordReset[]
+}
+
+model Product {
+  id        String   @id @default(uuid())
+  sku       String   @unique
+  name      String
+  cost      Decimal  @db.Decimal(12,2)
+  price     Decimal  @db.Decimal(12,2)
+  stock     Decimal  @db.Decimal(12,2) @default(0)
+  minStock  Decimal  @db.Decimal(12,2)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model InventoryMovement {
+  id          String   @id @default(uuid())
+  productId   String
+  kind        MovementKind
+  quantity    Decimal  @db.Decimal(12,2)
+  createdById String
+  createdAt   DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model Purchase {
+  id          String   @id @default(uuid())
+  supplier    String
+  createdById String
+  createdAt   DateTime @default(now())
+  items       PurchaseItem[]
+}
+
+model PurchaseItem {
+  id         String   @id @default(uuid())
+  purchaseId String
+  productId  String
+  quantity   Decimal  @db.Decimal(12,2)
+  unitCost   Decimal  @db.Decimal(12,2)
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+}
+
+model Sale {
+  id           String         @id @default(uuid())
+  createdById  String
+  createdAt    DateTime       @default(now())
+  payment      PaymentMethod  @default(EFECTIVO)
+  customerId   String?
+  customerRel  Customer?      @relation("SaleCustomer", fields: [customerId], references: [id])
+  customer     String?
+  items        SaleItem[]
+}
+
+model SaleItem {
+  id        String   @id @default(uuid())
+  saleId    String
+  productId String
+  quantity  Decimal  @db.Decimal(12,2)
+  unitPrice Decimal  @db.Decimal(12,2)
+  sale      Sale     @relation(fields: [saleId], references: [id])
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?  @unique
+  phone     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  sales     Sale[]   @relation("SaleCustomer")
+  payments  Payment[]
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  customerId  String
+  amount      Decimal  @db.Decimal(12,2)
+  method      String?
+  reference   String?
+  date        DateTime @default(now())
+  createdById String
+  createdAt   DateTime @default(now())
+  customer    Customer @relation(fields: [customerId], references: [id])
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+
+🧮 Todas las cantidades y montos son Decimal(12,2) para evitar errores de redondeo.
+
+🧩 Endpoints Principales
+Auth
+Método	Ruta	Descripción
+POST	/api/v1/auth/register	Alta de usuario
+POST	/api/v1/auth/login	Devuelve { token }
+Productos
+Método	Ruta	Descripción
+GET	/api/v1/products	Lista con búsqueda/paginación
+POST	/api/v1/products	Crea producto (stock inicial 0)
+PUT	/api/v1/products/:id	Editar producto
+PATCH	/api/v1/products/:id/status	Activa/desactiva (no si stock > 0)
+Movimientos
+Método	Ruta	Descripción
+POST	/api/v1/movements	Movimiento manual IN/OUT
+GET	/api/v1/movements	Últimos 50
+Compras / Ventas
+Método	Ruta	Descripción
+POST	/api/v1/purchases	Crea compra (IN stock)
+POST	/api/v1/sales	Crea venta (OUT stock)
+GET	/api/v1/sales	Lista últimas 50
+Regla	payment = CTA_CTE → requiere customerId	
+Clientes / Cuenta Corriente
+Método	Ruta	Descripción
+GET	/api/v1/customers	Listado (q opcional)
+POST	/api/v1/customers	Alta cliente
+PUT	/api/v1/customers/:id	Editar cliente
+GET	/api/v1/customers/:id/balance	Suma ventas – pagos
+GET	/api/v1/customers/:id/statement	Extracto detallado
+POST	/api/v1/customers/:id/payments	Registrar pago
+
+🧪 Tests E2E (Jest + Supertest)
+
+basic.e2e.spec.ts → health + login
+flow.e2e.spec.ts → CRUD productos + compra + venta
+sales.payment.e2e.spec.ts → CTA_CTE requiere cliente
+ar.e2e.spec.ts → Cuenta corriente: venta → saldo → pago → saldo
+
+Todos los tests están verdes ✅
+Ejecutar:
+npm run start:test
+npm test
+
+🧰 Scripts (package.json)
+{
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "start:test": "cross-env NODE_ENV=test node src/server.js",
+    "test": "cross-env NODE_ENV=test jest --runInBand"
+  }
+}
+
+
+npm run dev → modo desarrollo (hot reload)
+npm run start:test → modo test estable
+npm test → correr Jest (E2E)
+
+🐘 Base de datos (Docker)
 docker run --name quantix-db \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=quantix \
@@ -20,86 +197,27 @@ docker run --name quantix-db \
   -v quantix_pg:/var/lib/postgresql/data \
   -d postgres:16
 
-# 2 - Variables de entorno
-cp .env.example .env
-# (Editar .env si hace falta: DATABASE_URL / JWT_SECRET / PORT)
 
-# 3 - Dependencias + migraciones + seed
+Quick setup:
+cp .env.example .env
 npm install
 npx prisma migrate dev
-npx prisma db seed
-
-# 4 - Levantar API
 npm run dev
-# Health: http://localhost:4000/health  → { ok: true, uptime }
 
-Endpoints (v1)
+🧮 Healthcheck
+GET /health → { ok: true, uptime: ... }
 
-Auth 
-POST /api/v1/auth/register
-POST /api/v1/auth/login → { token }
-Usar Authorization: Bearer <token> en rutas protegidas.
+🚀 Estado actual
 
-Productos (JWT)
-GET /api/v1/products?q=&page=&limit=&includeInactive=1
-POST /api/v1/products → 201 Created
-- Crea producto (stock inicial 0.00). SKU único → duplicado responde 409.
-- Los decimales (cost, price, stock, minStock) se serializan con 2 dígitos, ej. "0.00".
-PUT /api/v1/products/:id (edita; no toca stock)
-PATCH /api/v1/products/:id/status { "active": true|false }
-- Regla: no desactivar si stock > 0 → 409
-DELETE /api/v1/products/:id (soft delete: desactiva; misma regla de stock)
+✅ Usuarios y roles
+✅ Autenticación con JWT
+✅ Productos + Stock
+✅ Compras / Ventas con actualización automática
+✅ Movimientos de inventario
+✅ Clientes y pagos (Cuenta Corriente)
+✅ Balance y extracto
+✅ Tests automáticos 100% verdes
+✅ Infraestructura lista para deploy
 
-Compras (IN) — JWT
-POST /api/v1/purchases → 201 Created
-{
-  "supplier": "Proveedor X",
-  "items": [{ "productId": "<uuid>", "quantity": 5, "unitCost": 10.5 }]
-}
-
-. Valida quantity > 0 y unitCost >= 0 (Decimal).
-. Transacción: cabecera + ítems + movimientos IN + actualiza stock.
-. Audita con createdById (usuario del token).
-
-GET /api/v1/purchases (últimas 50 con ítems)
-
-Ventas (OUT) — JWT
-POST /api/v1/sales → 201 Created
-{
-  "customer": "Cliente Y",
-  "items": [{ "productId": "<uuid>", "quantity": 2, "unitPrice": 120 }]
-}
-
-. Valida producto activo y stock suficiente.
-. Transacción: cabecera + ítems + movimientos OUT + actualiza stock.
-GET /api/v1/sales (últimas 50 con ítems)
-
-Movimientos — JWT
-GET /api/v1/movements (auditoría simple; últimos movimientos)
-
-Infra
-GET /health → { ok, uptime }
-Seguridad: helmet + rate-limit en /api/v1/auth/*
-Logs: morgan
-CORS: abierto en dev (whitelist en prod)
-Versionado: todas las rutas bajo /api/v1/
-
-Testing (E2E con Jest + Supertest)
-npm test
-Incluye:
-- tests/basic.e2e.spec.ts: health y login.
-- tests/flow.e2e.spec.ts:
-- crea producto (stock 0.00)
-- venta sin stock → 4xx
-- compra (IN) → 201
-- venta (OUT) → 201
-- no permite desactivar con stock > 0 → 4xx
--- Son pruebas de integración/E2E (Express + Prisma + DB real). No usan mocks.--
-
-Troubleshooting
-401: falta Authorization: Bearer <token> o JWT_SECRET incorrecto.
-409 (productos): SKU duplicado.
-409 (status): no se puede desactivar con stock > 0.
-400 (compras/ventas): revisar body (números válidos, productId existente/activo, campos requeridos).
 
 Hecho con ❤️ para Quantix.

@@ -1,19 +1,18 @@
 import jwt from "jsonwebtoken";
 
-export const verifyToken = (req, res, next) => {
+export function verifyToken(req, res, next) {
   const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ error: "Token requerido" });
+  const [type, token] = header.split(" ");
+
+  if (type !== "Bearer" || !token) {
+    return res.status(401).json({ error: "Token requerido" });
+  }
+
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload; 
-    next();
+    req.user = { id: payload.id, role: payload.role, email: payload.email };
+    return next();
   } catch {
     return res.status(401).json({ error: "Token inválido" });
   }
-};
-
-export const requireRole = (role) => (req, res, next) => {
-  if (req.user?.role !== role) return res.status(403).json({ error: "Sin permisos" });
-  next();
-};
+}

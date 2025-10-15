@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "quantix-api",
   "version": "1.0.0",
   "description": "",
@@ -7,7 +8,7 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "start:test": "cross-env NODE_ENV=test node src/server.js",
-    "test": "cross-env NODE_ENV=test jest --runInBand"
+    "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand"
   },
   "keywords": [],
   "author": "",

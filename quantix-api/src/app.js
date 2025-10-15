@@ -11,23 +11,27 @@ import movementsRoutes from "./routes/movements.js";
 import purchaseRoutes from "./routes/purchases.js";
 import salesRoutes from "./routes/sales.js";
 import customerRoutes from "./routes/customers.js";
+import reportRoutes from "./routes/reports.js";
+import { errorHandler } from "./middleware/error.js";
 
 dotenv.config();
 
 const app = express();
 
-// --- Seguridad y utilidades (antes de las rutas) ---
+// -------- Middlewares base --------
+app.disable("x-powered-by");
 app.use(helmet());
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(cors({ origin: true, credentials: true }));
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json());
 
-// --- Healthcheck ---
-app.get("/health", async (_req, res) => {
+// -------- Health & raíz --------
+app.get("/health", (_req, res) => {
   res.json({ ok: true, uptime: process.uptime() });
 });
+app.get("/", (_req, res) => res.json({ ok: true, name: "Quantix API v1" }));
 
-// --- Rate limit solo para /auth ---
+// -------- Rate limit solo /auth --------
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 100,
@@ -36,31 +40,20 @@ const authLimiter = rateLimit({
 });
 app.use("/api/v1/auth", authLimiter);
 
-// --- Rutas versionadas ---
-app.get("/", (_req, res) => res.json({ ok: true, name: "Quantix API v1" }));
-
-// Rutas de autenticación y usuarios
+// -------- Rutas --------
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/products", productRoutes);
-if (movementsRoutes) app.use("/api/v1/movements", movementsRoutes);
-
-// Rutas de compras y ventas
+app.use("/api/v1/movements", movementsRoutes);
 app.use("/api/v1/purchases", purchaseRoutes);
 app.use("/api/v1/sales", salesRoutes);
-
-// Rutas de clientes
 app.use("/api/v1/customers", customerRoutes);
+app.use("/api/v1/reports", reportRoutes);
+app.use("/customers", customerRoutes);
 
-// --- Manejador de errores simple (fallback) ---
-app.use((err, _req, res, _next) => {
-  console.error("❌ Uncaught error:", err);
-  const status = err.status || 500;
-  const payload =
-    process.env.NODE_ENV === "production"
-      ? { error: "Internal Server Error" }
-      : { error: err.message, stack: err.stack };
-  res.status(status).json(payload);
+app.use((req, res) => {
+  res.status(404).json({ error: "Not Found" });
 });
 
-export default app;
+app.use(errorHandler);
 
+export default app;
