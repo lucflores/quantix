@@ -1,64 +1,37 @@
 import express from "express";
 import { prisma } from "../lib/prisma.js";
 import { verifyToken } from "../middleware/auth.js";
+import { can } from "../middleware/authz.js";
 import { Prisma } from "@prisma/client";
 
 const router = express.Router();
 
-/** Crear un movimiento de inventario */
-router.post("/", verifyToken, async (req, res) => {
-  try {
-    const { productId, kind, quantity } = req.body;
-    const qtyDec = new Prisma.Decimal(quantity);
-    if (!productId || !["IN", "OUT"].includes(kind) || isNaN(qtyDec) || qty <= 0) {
-      return res.status(400).json({ error: "Datos inválidos" });
-    }
+const d2 = (v) =>
+  v instanceof Prisma.Decimal ? v.toFixed(2) : new Prisma.Decimal(v ?? 0).toFixed(2);
 
-    const result = await prisma.$transaction(async (tx) => {
-      const product = await tx.product.findUnique({ where: { id: productId } });
-      if (!product) throw new Error("Producto no encontrado");
-
-      if (kind === "OUT" && product.stock < qtyDec) {
-        throw new Error("Stock insuficiente");
-      }
-
-      // 1) crear movimiento
-      const movement = await tx.inventoryMovement.create({
-        data: {
-          productId,
-          kind,
-          quantity: qtyDec,
-          createdById: req.user.id,
-        },
-      });
-
-      // 2) actualizar stock
-      await tx.product.update({
-        where: { id: productId },
-        data: {
-          stock: kind === "IN"
-              ? { increment: qtyDec }
-              : { decrement: qtyDec },
-        },
-      });
-
-      return movement;
-    });
-
-    res.json(result);
-  } catch (e) {
-    res.status(400).json({ error: e.message });
-  }
+const serializeMovement = (m) => ({
+  id: m.id,
+  productId: m.productId,
+  product: m.product ? { id: m.product.id, sku: m.product.sku, name: m.product.name } : null,
+  kind: m.kind,
+  quantity: d2(m.quantity),
+  createdById: m.createdById,
+  createdAt: m.createdAt,
 });
 
-/** Listado simple de últimos movimientos */
-router.get("/", verifyToken, async (_req, res) => {
-  const rows = await prisma.inventoryMovement.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: { product: { select: { sku: true, name: true } } },
-  });
-  res.json(rows);
+// GET /api/v1/movements  → últimos 100
+router.get("/", verifyToken, can("movement:list"), async (_req, res) => {
+  try {
+    const list = await prisma.inventoryMovement.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: { product: true },
+    });
+    res.json(list.map(serializeMovement));
+  } catch (e) {
+    console.error("❌ Movements list error:", e);
+    res.status(400).json({ error: e.message });
+  }
 });
 
 export default router;

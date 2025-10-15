@@ -10,6 +10,7 @@ import productRoutes from "./routes/products.js";
 import movementsRoutes from "./routes/movements.js";
 import purchaseRoutes from "./routes/purchases.js";
 import salesRoutes from "./routes/sales.js";
+import customerRoutes from "./routes/customers.js";
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use("/api/v1/auth", authLimiter);
 // --- Rutas versionadas ---
 app.get("/", (_req, res) => res.json({ ok: true, name: "Quantix API v1" }));
 
+// Rutas de autenticación y usuarios
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/products", productRoutes);
 if (movementsRoutes) app.use("/api/v1/movements", movementsRoutes);
@@ -45,6 +47,9 @@ if (movementsRoutes) app.use("/api/v1/movements", movementsRoutes);
 // Rutas de compras y ventas
 app.use("/api/v1/purchases", purchaseRoutes);
 app.use("/api/v1/sales", salesRoutes);
+
+// Rutas de clientes
+app.use("/api/v1/customers", customerRoutes);
 
 // --- Manejador de errores simple (fallback) ---
 app.use((err, _req, res, _next) => {

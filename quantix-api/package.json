@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "test": "cross-env NODE_ENV=test jest --runInBand",
     "start": "node src/server.js",
-    "prisma:studio": "prisma studio"
+    "start:test": "cross-env NODE_ENV=test node src/server.js",
+    "test": "cross-env NODE_ENV=test jest --runInBand"
   },
   "keywords": [],
   "author": "",

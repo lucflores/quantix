@@ -48,16 +48,13 @@ describe('Flujo productos/compras/ventas', () => {
     .post('/purchases')
     .set('Authorization', `Bearer ${token}`)
     .send({ supplier: 'Prov', items: [{ productId, quantity: 5, unitCost: 10.5 }] });
-
-  if (p.status !== 201) {
-    console.error('Purchase error:', p.status, JSON.stringify(p.body, null, 2));
-  }
+  expect(p.status).toBe(201);
 
   const s = await request(API)
     .post('/sales')
     .set('Authorization', `Bearer ${token}`)
     .send({ customer: 'Cliente Y', items: [{ productId, quantity: 2, unitPrice: 25 }] });
-  expect([200, 201]).toContain(s.status);
+  expect(s.status).toBe(201);
 });
 
 });
