@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: quantix
+      POSTGRES_DB: quantix
+    volumes:
+      - quantix_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d quantix"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  api:
+    build:
+      context: ./quantix-api
+      dockerfile: Dockerfile.dev
+    env_file: ./quantix-api/.env
+    ports:
+      - "3000:3000"
+      - "5555:5555"
+    volumes:
+      - ./quantix-api:/app
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["/bin/sh", "./docker/dev.entrypoint.sh"]
+
+  frontend:
+    build:
+      context: ./quantix-frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./quantix-frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    command: npm run dev -- --host
+
+volumes:
+  quantix_pg:

@@ -1,0 +1,23 @@
+# Etapa base: Node 20
+FROM node:20
+
+# Directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copiamos los archivos de dependencias primero
+COPY package*.json ./
+
+# Instalamos dependencias (todas, incluyendo las devDependencies)
+RUN npm install
+
+# Copiamos el resto del proyecto
+COPY . .
+
+# Evitamos que node_modules del host sobreescriba los del contenedor
+VOLUME ["/app/node_modules"]
+
+# Exponemos el puerto de Vite
+EXPOSE 5173
+
+# Comando por defecto
+CMD ["npm", "run", "dev", "--", "--host"]

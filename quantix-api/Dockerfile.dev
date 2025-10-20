@@ -1,0 +1,21 @@
+FROM node:20
+
+WORKDIR /app
+
+# Copiamos sólo lo necesario para instalar deps y generar Prisma
+COPY package*.json ./
+COPY prisma ./prisma
+
+# Instalar deps (usa lock si está) y generar Prisma Client
+RUN npm ci --ignore-scripts || npm install
+RUN npx prisma generate
+
+# Copiamos el resto del código
+COPY . .
+
+EXPOSE 3000
+
+# Entrypoint: corre migraciones y arranca el server en dev
+COPY docker/dev.entrypoint.sh /usr/local/bin/dev-entrypoint.sh
+RUN chmod +x /usr/local/bin/dev-entrypoint.sh
+ENTRYPOINT ["dev-entrypoint.sh"]
