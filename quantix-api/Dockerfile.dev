@@ -19,3 +19,4 @@ EXPOSE 3000
 COPY docker/dev.entrypoint.sh /usr/local/bin/dev-entrypoint.sh
 RUN chmod +x /usr/local/bin/dev-entrypoint.sh
 ENTRYPOINT ["dev-entrypoint.sh"]
+
