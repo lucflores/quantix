@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { api } from "../../../core/api/client";
-import type { LoginResponse } from "../types";
 import { useAuthStore } from "./useAuthStore";
+import { login as loginApi } from "../api/auth";
 
 export const useLogin = () => {
   const setToken = useAuthStore((s) => s.setToken);
-
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
@@ -13,11 +11,12 @@ export const useLogin = () => {
     try {
       setLoading(true);
       setError(null);
-      const { data } = await api.post<LoginResponse>("/auth/login", { email, password });
-      setToken(data.token);       // guarda en Zustand (persist)
+      const { token } = await loginApi({ email, password });
+      setToken(token); // Zustand persist
       return true;
     } catch (e: any) {
-      setError(e?.response?.data?.error ?? "Credenciales inválidas");
+      const msg = e?.response?.data?.error ?? "Credenciales inválidas";
+      setError(msg);
       return false;
     } finally {
       setLoading(false);

@@ -33,18 +33,20 @@ describe("Reports: /reports/low-stock", () => {
       .post("/api/v1/auth/login")
       .send({ email: "admin@quantix.dev", password: "admin123" });
 
-    // si el usuario no existe, lo creamos para el test
-    if (login.status === 404) {
-      await request(API)
-        .post("/api/v1/auth/register")
-        .send({ email: "admin@quantix.dev", password: "admin123" });
-      const relog = await request(API)
-        .post("/api/v1/auth/login")
-        .send({ email: "admin@quantix.dev", password: "admin123" });
-      token = relog.body.token;
-    } else {
-      token = login.body.token;
-    }
+    // si el login falla, creamos el usuario y reintentamos
+if (login.status !== 200) {
+  await request(API)
+    .post("/api/v1/auth/register")
+    .send({ email: "admin@quantix.dev", password: "admin123" });
+
+  const relog = await request(API)
+    .post("/api/v1/auth/login")
+    .send({ email: "admin@quantix.dev", password: "admin123" });
+
+  token = relog.body.token;
+} else {
+  token = login.body.token;
+}
 
     // limpiamos productos viejos de test
     await prisma.product.deleteMany({
