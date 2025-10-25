@@ -1,7 +1,7 @@
 import { Outlet, Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
-import "./DashboardPage.css"
+import "./DashboardPage.css";
 
 export default function DashboardPage() {
   return (
@@ -9,7 +9,7 @@ export default function DashboardPage() {
       {/* ===== Sidebar Start ===== */}
       <div className="sidebar d-flex flex-column flex-shrink-0 p-3 bg-light border-end">
         <Link
-          to="/home"
+          to="/"
           className="d-flex align-items-center mb-3 mb-md-4 me-md-auto text-primary text-decoration-none"
         >
           <span className="fs-4 fw-bold">Quantix</span>

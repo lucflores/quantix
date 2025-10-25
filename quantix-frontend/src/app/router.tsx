@@ -1,10 +1,10 @@
 import { createBrowserRouter } from "react-router-dom";
 import { LoginPage } from "../features/auth/pages/LoginPage";
-import DashboardPage from "./layout/DashboardPage";
+import DashboardPage from "../features/dashboard/DashboardPage";
 import { PrivateRoute } from "./PrivateRoute";
 import { MovementsPage } from "../features/movements/pages/MovementsPage";
 import Home from "../Pages/Home";
-import Products from "../Pages/Products";
+import Products from "../features/products/Products";
 import Stock from "../Pages/Stock";
 import StockMov from "../Pages/StockMov";
 
