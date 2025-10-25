@@ -40,6 +40,9 @@ services:
     volumes:
       - ./quantix-frontend:/app
       - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true    # esto hace que el front se actualice solo
+      - WATCHPACK_POLLING=true
     depends_on:
       - api
     command: npm run dev -- --host
