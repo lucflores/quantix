@@ -12,7 +12,7 @@ export const useLogin = () => {
       setLoading(true);
       setError(null);
       const { token } = await loginApi({ email, password });
-      setToken(token); // Zustand persist
+      setToken(token); 
       return true;
     } catch (e: any) {
       const msg = e?.response?.data?.error ?? "Credenciales inválidas";
