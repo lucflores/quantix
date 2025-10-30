@@ -19,12 +19,17 @@ export function useProducts() {
   return useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
+      // ✅ Leer token del almacenamiento correcto (Zustand persist)
+      const stored = localStorage.getItem("quantix-auth");
+      const token = stored ? JSON.parse(stored)?.state?.token : null;
+
       const res = await fetch(`${import.meta.env.VITE_API_URL}/products`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+
       if (res.status === 401) throw new Error("No autorizado. Iniciá sesión.");
       if (!res.ok) throw new Error("Error al cargar productos");
+
       const json = await res.json();
       const data = Array.isArray(json) ? json : json.items;
       return listSchema.parse(data);
