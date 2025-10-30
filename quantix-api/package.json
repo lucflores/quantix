@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "start:test": "cross-env NODE_ENV=test node src/server.js",
     "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
-    "test:e2e": "docker compose -f ../docker-compose.dev.yml exec api npm test"
+    "test:e2e": "docker compose -f ../docker-compose.dev.yml exec api npm test",
+    "seed": "prisma db seed"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +18,7 @@
   "dependencies": {
     "@prisma/client": "^6.17.0",
     "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -41,5 +43,8 @@
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",
     "typescript": "^5.9.3"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }

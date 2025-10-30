@@ -11,3 +11,8 @@ npx prisma migrate deploy
 echo "🚀 Iniciando API en modo desarrollo..."
 # si tu package.json tiene "dev": "node --watch src/server.js"
 npm run dev
+
+if [ "$SEED_ON_START" = "1" ]; then
+  echo "🌱 Running seed..."
+  npx prisma db seed || true
+fi

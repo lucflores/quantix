@@ -5,7 +5,7 @@ import request from "supertest";
 // @ts-ignore
 import { prisma } from "../src/lib/prisma.js";
 
-const API = "http://localhost:4000";
+const API = "http://localhost:3000";
 
 // Helper: espera a que el server responda /health
 async function waitForServerReady(retries = 10, delay = 1000) {

@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:16
@@ -20,6 +18,11 @@ services:
       context: ./quantix-api
       dockerfile: Dockerfile.dev
     env_file: ./quantix-api/.env
+    environment:
+      # Estas van en la API, no en db
+      SEED_ON_START: "1"
+      SEED_ADMIN_EMAIL: admin@quantix.local
+      SEED_ADMIN_PASSWORD: "1234"
     ports:
       - "3000:3000"
       - "5555:5555"
@@ -41,11 +44,11 @@ services:
       - ./quantix-frontend:/app
       - /app/node_modules
     environment:
-      - CHOKIDAR_USEPOLLING=true    # esto hace que el front se actualice solo
+      - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     depends_on:
       - api
     command: npm run dev -- --host
 
 volumes:
-  quantix_pg:
+  quantix_pg: {}

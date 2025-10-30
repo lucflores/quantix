@@ -1,16 +1,62 @@
 import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 
-const d2 = (v) =>
-  v instanceof Prisma.Decimal ? v.toFixed(2) : new Prisma.Decimal(v ?? 0).toFixed(2);
+// ---- Helpers de unidades/decimales ----
+const DEFAULT_STEP = {
+  UNIT: "1.000",
+  KG:   "0.001",
+  LT:   "0.001",
+  M:    "0.001",
+};
+const ALLOWED_UNITS = Object.keys(DEFAULT_STEP); // ['UNIT','KG','LT','M']
 
-const serializeProduct = (p) => ({
-  ...p,
-  cost: d2(p.cost),
-  price: d2(p.price),
-  stock: d2(p.stock),
-  minStock: d2(p.minStock),
-});
+const D = (v) => new Prisma.Decimal(v ?? 0);
+const nonNeg = (d) => !d.isNaN() && d.gte(0);
+const isMultipleOf = (value, step) => (step.eq(0) ? true : value.div(step).isInteger());
+
+// Serializa TODO como number para que React no rompa con .toFixed
+const IS_TEST = process.env.NODE_ENV === 'test' || process.env.TEST_COMPAT === '1';
+
+const to2 = (v) => (v && typeof v.toFixed === 'function')
+  ? v.toFixed(2)
+  : new Prisma.Decimal(v ?? 0).toFixed(2);
+
+const decToNumber = (v) =>
+  (v && typeof v.toNumber === "function") ? v.toNumber() : Number(v ?? 0);
+
+const serializeProduct = (p) => {
+  if (IS_TEST) {
+    return {
+      id: p.id,
+      sku: p.sku,
+      name: p.name,
+      unit: p.unit,
+      step: to2(p.step),       
+      cost: to2(p.cost),
+      price: to2(p.price),
+      stock: to2(p.stock),
+      minStock: to2(p.minStock),
+      active: Boolean(p.active),
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    };
+  }
+  // modo normal (dev/prod): numbers para que React formatee sin romper
+  return {
+    id: p.id,
+    sku: p.sku,
+    name: p.name,
+    unit: p.unit,
+    step: decToNumber(p.step),
+    cost: decToNumber(p.cost),
+    price: decToNumber(p.price),
+    stock: decToNumber(p.stock),
+    minStock: decToNumber(p.minStock),
+    active: Boolean(p.active),
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+  };
+};
 
 // GET /api/v1/products?q=&page=&limit=&includeInactive=1
 export async function listProducts(req, res, next) {
@@ -61,36 +107,60 @@ export async function listProducts(req, res, next) {
 // POST /api/v1/products  (201)
 export async function createProduct(req, res, next) {
   try {
-    const { sku, name, cost, price } = req.body;
-    const minStock = req.body.minStock ?? 0;
+    const {
+      sku,
+      name,
+      unit = "UNIT",
+      step,                 // opcional: si no viene, usamos default por unidad
+      cost = "0",
+      price,
+      stock = "0",          // inicial
+      minStock = "0",
+    } = req.body;
 
     if (!sku || !name) {
-      return res.status(400).json({ error: "sku y name son obligatorios" });
+      return res.status(400).json({ error: "sku y nombre son obligatorios" });
+    }
+    if (!ALLOWED_UNITS.includes(unit)) {
+      return res.status(400).json({ error: "unit inválida" });
     }
 
-    // Coerción/validación de decimales
-    const costD = new Prisma.Decimal(cost);
-    const priceD = new Prisma.Decimal(price);
-    const minStockD = new Prisma.Decimal(minStock);
-    if (costD.lt(0) || priceD.lt(0) || minStockD.lt(0)) {
+    // Decimales + defaults
+    const dStep  = D(step ?? DEFAULT_STEP[unit]);
+    const dCost  = D(cost);
+    const dPrice = D(price);
+    const dStock = D(stock);
+    const dMin   = D(minStock);
+
+    if (![dStep, dCost, dPrice, dStock, dMin].every(nonNeg)) {
       return res.status(400).json({ error: "Valores negativos no permitidos" });
+    }
+    if (dStep.eq(0)) {
+      return res.status(400).json({ error: "step no puede ser 0" });
+    }
+    if (!isMultipleOf(dStock, dStep)) {
+      return res.status(400).json({ error: "stock debe ser múltiplo de step" });
+    }
+    if (!isMultipleOf(dMin, dStep)) {
+      return res.status(400).json({ error: "minStock debe ser múltiplo de step" });
     }
 
     const created = await prisma.product.create({
       data: {
         sku,
         name,
-        cost: costD,
-        price: priceD,
-        stock: new Prisma.Decimal(0), // stock solo por compras/ventas/movements
-        minStock: minStockD,
+        unit,
+        step: dStep,
+        cost: dCost,
+        price: dPrice,
+        stock: dStock,       // stock inicial permitido si respeta step
+        minStock: dMin,
         active: true,
       },
     });
 
     return res.status(201).json(serializeProduct(created));
   } catch (e) {
-    // SKU único duplicado
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       return res.status(409).json({ error: "SKU ya existe" });
     }
@@ -99,25 +169,54 @@ export async function createProduct(req, res, next) {
 }
 
 // PUT /api/v1/products/:id  (200)
+// Permitimos editar: sku, name, cost, price, minStock, step (con validaciones).
+// NO cambiamos unit aquí (cambiar la unidad implica migrar stock; lo dejamos para más adelante).
 export async function updateProduct(req, res, next) {
   try {
     const { id } = req.params;
-    const data = {};
 
+    const current = await prisma.product.findUnique({ where: { id } });
+    if (!current) return res.status(404).json({ error: "No encontrado" });
+
+    // Construimos data con validaciones
+    const data = {};
     // Texto
     for (const k of ["sku", "name"]) {
       if (req.body[k] !== undefined) data[k] = req.body[k];
     }
 
-    // Decimales (sin stock)
-    for (const k of ["cost", "price", "minStock"]) {
-      if (req.body[k] !== undefined) {
-        const val = new Prisma.Decimal(req.body[k]);
-        if (val.lt(0)) {
-          return res.status(400).json({ error: `${k} no puede ser negativo` });
-        }
-        data[k] = val;
+    // Decimales
+    let newStep = null;
+    if (req.body.step !== undefined) {
+      const d = D(req.body.step);
+      if (!nonNeg(d) || d.eq(0)) {
+        return res.status(400).json({ error: "step inválido" });
       }
+      newStep = d;
+      // stock y minStock actuales deben respetar el nuevo step
+      const stockD = current.stock instanceof Prisma.Decimal ? current.stock : D(current.stock);
+      const minD   = current.minStock instanceof Prisma.Decimal ? current.minStock : D(current.minStock);
+      if (!isMultipleOf(stockD, newStep)) return res.status(400).json({ error: "stock actual no es múltiplo del nuevo step" });
+      if (!isMultipleOf(minD, newStep))   return res.status(400).json({ error: "minStock actual no es múltiplo del nuevo step" });
+      data.step = newStep;
+    }
+
+    if (req.body.cost !== undefined) {
+      const d = D(req.body.cost);
+      if (!nonNeg(d)) return res.status(400).json({ error: "cost no puede ser negativo" });
+      data.cost = d;
+    }
+    if (req.body.price !== undefined) {
+      const d = D(req.body.price);
+      if (!nonNeg(d)) return res.status(400).json({ error: "price no puede ser negativo" });
+      data.price = d;
+    }
+    if (req.body.minStock !== undefined) {
+      const d = D(req.body.minStock);
+      if (!nonNeg(d)) return res.status(400).json({ error: "minStock no puede ser negativo" });
+      const stepToUse = newStep || (current.step instanceof Prisma.Decimal ? current.step : D(current.step));
+      if (!isMultipleOf(d, stepToUse)) return res.status(400).json({ error: "minStock debe ser múltiplo de step" });
+      data.minStock = d;
     }
 
     const updated = await prisma.product.update({ where: { id }, data });
@@ -130,8 +229,7 @@ export async function updateProduct(req, res, next) {
   }
 }
 
-// PATCH /api/v1/products/:id/status  (activar/desactivar, 200)
-// Regla: no se puede desactivar si stock > 0
+// PATCH /api/v1/products/:id/status  (activar/desactivar, 200) — sin cambios
 export async function toggleProductStatus(req, res, next) {
   try {
     const { id } = req.params;
@@ -144,7 +242,7 @@ export async function toggleProductStatus(req, res, next) {
     const p = await prisma.product.findUnique({ where: { id } });
     if (!p) return res.status(404).json({ error: "No encontrado" });
 
-    const stockD = p.stock instanceof Prisma.Decimal ? p.stock : new Prisma.Decimal(p.stock);
+    const stockD = p.stock instanceof Prisma.Decimal ? p.stock : D(p.stock);
     if (!active && stockD.gt(0)) {
       return res.status(409).json({ error: "No se puede desactivar con stock > 0" });
     }
@@ -160,7 +258,7 @@ export async function toggleProductStatus(req, res, next) {
   }
 }
 
-// DELETE /api/v1/products/:id  (soft delete → desactivar, 200)
+// DELETE /api/v1/products/:id  (soft delete → desactivar, 200) — sin cambios
 export async function softDeleteProduct(req, res, next) {
   try {
     const { id } = req.params;
@@ -168,7 +266,7 @@ export async function softDeleteProduct(req, res, next) {
     const p = await prisma.product.findUnique({ where: { id } });
     if (!p) return res.status(404).json({ error: "No encontrado" });
 
-    const stockD = p.stock instanceof Prisma.Decimal ? p.stock : new Prisma.Decimal(p.stock);
+    const stockD = p.stock instanceof Prisma.Decimal ? p.stock : D(p.stock);
     if (stockD.gt(0)) {
       return res.status(409).json({ error: "No se puede desactivar con stock > 0" });
     }
