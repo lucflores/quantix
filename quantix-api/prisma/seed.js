@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const email = process.env.SEED_ADMIN_EMAIL || 'admin@quantix.local';
-  const plain = process.env.SEED_ADMIN_PASSWORD || 'admin1234';
+  const plain = process.env.SEED_ADMIN_PASSWORD || '1234';
   const password = await bcrypt.hash(plain, 10); 
 
   // Crea (o asegura) el usuario admin

@@ -1,10 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./app/App";
-import "./styles/global.css";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./styles/tokens.css";
+import "./styles/global.css";
+import "./styles/components.css";
 
-// 👇 agrega esto
+
 import { setAuthToken } from "./core/api/client";
 
 const token = localStorage.getItem("token");
