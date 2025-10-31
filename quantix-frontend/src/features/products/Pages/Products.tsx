@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useProducts } from "./hooks/useProducts";
+import { useProducts } from "../hooks/useProducts";
 
 export default function Products() {
   const { data: products, isLoading, isError, error } = useProducts();
@@ -28,7 +28,7 @@ export default function Products() {
         {/* Encabezado con botón */}
         <div className="d-flex align-items-center justify-content-between mb-4">
           <h6 className="mb-0">Productos</h6>
-          <Link to="/newproduct" className="btn btn-sm btn-primary">
+          <Link to="new" className="btn btn-sm btn-primary">
             Nuevo Producto
           </Link>
         </div>
@@ -38,7 +38,7 @@ export default function Products() {
           <table className="table text-start align-middle table-bordered table-hover mb-0">
             <thead>
               <tr className="text-dark">
-                <th style={{ width: "80px" }}>ID</th>
+                <th style={{ width: "80px" }}>SKU</th>
                 <th>Nombre</th>
                 <th>Descripción</th>
                 <th style={{ width: "120px" }}>Precio</th>
@@ -48,7 +48,7 @@ export default function Products() {
             <tbody>
               {products?.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.id}</td>
+                  <td>{p.sku}</td>
                   <td>{p.name}</td>
                   <td>{p.description}</td>
                   <td>${p.price.toFixed(2)}</td>

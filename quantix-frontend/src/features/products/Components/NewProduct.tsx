@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function NewProduct() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     codigo: "",
     nombre: "",
@@ -17,10 +20,49 @@ export default function NewProduct() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Producto creado:", formData);
-    alert("✅ Producto guardado correctamente");
+
+    try {
+      const stored = localStorage.getItem("quantix-auth");
+      const token = stored ? JSON.parse(stored)?.state?.token : null;
+
+      if (!token) {
+        alert("⚠️ No se encontró token, iniciá sesión nuevamente.");
+        return;
+      }
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/products`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          sku: formData.codigo,
+          name: formData.nombre,
+          description: formData.composicion || "",
+          unit: formData.unidad.toUpperCase(),
+          step: 1,
+          cost: 0,
+          price: 0,
+          stock: 0,
+          minStock: Number(formData.stockMinimo || 0),
+          active: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || data.message || "Error al crear producto");
+      }
+
+      // ✅ Producto creado correctamente
+      navigate(-1);
+    } catch (err: any) {
+      console.error("❌ Error al crear producto:", err);
+      alert(`❌ ${err.message}`);
+    }
   };
 
   return (
@@ -95,7 +137,9 @@ export default function NewProduct() {
 
           {/* Unidad */}
           <div className="mb-2">
-            <label className="form-label small fw-semibold">Unidad de control</label>
+            <label className="form-label small fw-semibold">
+              Unidad de control
+            </label>
             <select
               name="unidad"
               value={formData.unidad}
@@ -104,9 +148,10 @@ export default function NewProduct() {
               required
             >
               <option value="">Seleccionar...</option>
-              <option value="pieza">Pieza</option>
-              <option value="metro">Metro</option>
-              <option value="kg">Kg</option>
+              <option value="UNIT">Unidad</option>
+              <option value="KG">Kilogramo</option>
+              <option value="LT">Litro</option>
+              <option value="M">Metro</option>
             </select>
           </div>
 
@@ -123,8 +168,15 @@ export default function NewProduct() {
             />
           </div>
 
-          {/* Botón */}
-          <div className="text-end">
+          {/* Botones */}
+          <div className="d-flex justify-content-between">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="btn btn-sm btn-primary px-3"
+            >
+              Volver
+            </button>
             <button type="submit" className="btn btn-sm btn-primary px-3">
               Guardar
             </button>

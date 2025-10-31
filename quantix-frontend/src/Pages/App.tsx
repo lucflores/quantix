@@ -1,9 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import "../assets/App.css";
-import Products from "../features/products/Products";
+import Products from "../features/products/Pages/Products";
 import Login from "./Login";
 import Layout from "./Layout";
-import NewProduct from "./NewProduct";
+import NewProduct from "../features/products/Components/NewProduct";
 import Stock from "./Stock";
 import Home from "./Home";
 import Entry from "./Entry";
