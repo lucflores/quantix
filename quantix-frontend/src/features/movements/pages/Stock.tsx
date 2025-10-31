@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useStock } from "../hooks/useStock";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./Stock.css";
 
@@ -6,12 +7,10 @@ export default function Stock() {
   const [search, setSearch] = useState("");
   const [proveedor, setProveedor] = useState("");
 
-  const productos = [
-    { codigo: "P001", nombre: "Tela Algodón", proveedor: "Textil S.A.", disponible: 120, reservado: 10 },
-    { codigo: "P002", nombre: "Cinta Satinada", proveedor: "Lazos SRL", disponible: 80, reservado: 15 },
-    { codigo: "P003", nombre: "Botón Metal", proveedor: "Accesorios SRL", disponible: 200, reservado: 25 },
-    { codigo: "P004", nombre: "Hilo Rojo", proveedor: "Textil S.A.", disponible: 60, reservado: 5 },
-  ];
+  const { data: productos = [], isLoading, isError } = useStock();
+
+  if (isLoading) return <div className="alert alert-info">Cargando stock...</div>;
+  if (isError) return <div className="alert alert-danger">Error al cargar stock</div>;
 
   const productosFiltrados = productos.filter(
     (p) =>
@@ -69,13 +68,15 @@ export default function Stock() {
             <tbody>
               {productosFiltrados.length > 0 ? (
                 productosFiltrados.map((p) => (
-                  <tr key={p.codigo}>
-                    <td>{p.codigo}</td>
+                  <tr key={p.id || p.codigo}>
+                    <td>{p.codigo || p.sku}</td>
                     <td>{p.nombre}</td>
-                    <td>{p.proveedor}</td>
-                    <td className="text-success fw-semibold">{p.disponible}</td>
-                    <td className="text-danger fw-semibold">{p.reservado}</td>
-                    <td className="fw-semibold">{p.disponible + p.reservado}</td>
+                    <td>{p.proveedor?.nombre || "—"}</td>
+                    <td className="text-success fw-semibold">{p.stockDisponible ?? 0}</td>
+                    <td className="text-danger fw-semibold">{p.stockReservado ?? 0}</td>
+                    <td className="fw-semibold">
+                      {(p.stockDisponible ?? 0) + (p.stockReservado ?? 0)}
+                    </td>
                     <td>
                       <button className="btn btn-sm btn-primary">
                         <i className="bi bi-pencil"></i>

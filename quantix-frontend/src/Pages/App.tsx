@@ -4,10 +4,10 @@ import Products from "../features/products/Pages/Products";
 import Login from "./Login";
 import Layout from "./Layout";
 import NewProduct from "../features/products/Components/NewProduct";
-import Stock from "./Stock";
+import Stock from "../features/movements/pages/Stock";
 import Home from "./Home";
 import Entry from "./Entry";
-import StockMov from "./StockMov";
+import StockMov from "../features/movements/pages/StockMov";
 
 export default function App() {
   return (

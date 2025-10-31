@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
           <li>
             <Link to="/movements" className="nav-link text-dark">
-              <i className="bi bi-gear me-2"></i> Movements
+              <i className="bi bi-gear me-2"></i> (Ejemplo)
             </Link>
           </li>
         </ul>

@@ -1,3 +1,5 @@
+// ESTO QUEDA COMO UN EJEMPLO DE PAGINA CON FILTROS LOCALES, NO SE USA
+
 import { useMemo, useState } from "react";
 import { useMovements } from "../hooks/useMovements";
 import type { MovementsQuery } from "../types";

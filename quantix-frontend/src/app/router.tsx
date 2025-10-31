@@ -5,8 +5,8 @@ import { PrivateRoute } from "./PrivateRoute";
 import { MovementsPage } from "../features/movements/pages/MovementsPage";
 import Home from "../Pages/Home";
 import Products from "../features/products/Pages/Products";
-import Stock from "../Pages/Stock";
-import StockMov from "../Pages/StockMov";
+import Stock from "../features/movements/pages/Stock";
+import StockMov from "../features/movements/pages/StockMov";
 import NewProduct from "../features/products/Components/NewProduct";
 
 export const router = createBrowserRouter([
