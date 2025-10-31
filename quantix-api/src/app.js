@@ -26,6 +26,7 @@ import purchasesRoutes from "./routes/purchases.js";
 import salesRoutes from "./routes/sales.js";
 import customersRoutes from "./routes/customers.js";
 import reportsRoutes from "./routes/reports.js";
+import transactionsRoutes from "./routes/transactions.js";
 
 const app = express();
 
@@ -108,6 +109,7 @@ api.use("/purchases", purchasesRoutes);
 api.use("/sales", salesRoutes);
 api.use("/customers", customersRoutes);
 api.use("/reports", reportsRoutes);
+api.use("/transactions", transactionsRoutes);
 
 app.use("/api/v1", api);
 
