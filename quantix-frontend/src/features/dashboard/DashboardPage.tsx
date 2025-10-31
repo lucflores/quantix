@@ -17,7 +17,7 @@ export default function DashboardPage() {
 
         <ul className="nav nav-pills flex-column mb-auto">
           <li className="nav-item">
-            <Link to="/dashboard/home" className="nav-link text-dark">
+            <Link to="/dashboard/transactionregister" className="nav-link text-dark">
               <i className="bi bi-house-door me-2"></i> Home
             </Link>
           </li>

@@ -5,7 +5,7 @@ import Login from "./Login";
 import Layout from "./Layout";
 import NewProduct from "../features/products/Components/NewProduct";
 import Stock from "../features/movements/pages/Stock";
-import Home from "./Home";
+import Home from "../features/TransactionRegister/Pages/TransactionRegister";
 import Entry from "./Entry";
 import StockMov from "../features/movements/pages/StockMov";
 

@@ -1,13 +1,13 @@
 import { Link } from "react-router-dom";
-import "./Home.css";
+import "./TransactionRegister.css";
 
-export default function Home() {
+export default function TransactionRegister() {
   return (
-    <div className="home-container container-fluid pt-4 px-4">
-      <div className="home-card bg-light text-center rounded p-4">
-        <div className="home-header d-flex align-items-center justify-content-between mb-4">
+    <div className="transaction-register-container container-fluid pt-4 px-4">
+      <div className="transaction-register-card bg-light text-center rounded p-4">
+        <div className="transaction-register-header d-flex align-items-center justify-content-between mb-4">
           <h6 className="mb-0">Registros</h6>
-          <Link to="/entry" className="btn btn-sm btn-primary">
+          <Link to="new" className="btn btn-sm btn-primary">
             Nuevo Registro
           </Link>
         </div>
