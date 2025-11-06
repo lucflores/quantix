@@ -17,8 +17,8 @@ export default function DashboardPage() {
 
         <ul className="nav nav-pills flex-column mb-auto">
           <li className="nav-item">
-            <Link to="/dashboard/home" className="nav-link text-dark">
-              <i className="bi bi-house-door me-2"></i> Home
+            <Link to="/dashboard/transactionregister" className="nav-link text-dark">
+              <i className="bi bi-house-door me-2"></i> Registros
             </Link>
           </li>
 
@@ -56,12 +56,40 @@ export default function DashboardPage() {
               </li>
             </ul>
           </li>
-
-          <li>
-            <Link to="/movements" className="nav-link text-dark">
-              <i className="bi bi-gear me-2"></i> Movements
-            </Link>
+          {/* ===== Dropdown Socios ===== */}
+          <li className="nav-item dropdown">
+            <a
+              href="#"
+              className="nav-link dropdown-toggle text-dark"
+              id="stockDropdown"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i className="bi bi-archive me-2"></i> Socios
+            </a>
+            <ul
+              className="dropdown-menu border-0 shadow-sm"
+              aria-labelledby="stockDropdown"
+            >
+              <li>
+                <Link className="dropdown-item" to="partners">
+                  Listado Socios
+                </Link>
+              </li>
+              <li>
+                <Link className="dropdown-item" to="/dashboard/partners/cuenta">
+                  Cuentas Corrientes
+                </Link>
+              </li>
+            </ul>
           </li>
+
+          {/*<li>
+            <Link to="/movements" className="nav-link text-dark">
+              <i className="bi bi-gear me-2"></i> (Ejemplo)
+            </Link>
+          </li>*/}
         </ul>
       </div>
       {/* ===== Sidebar End ===== */}

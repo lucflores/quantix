@@ -1,89 +1,81 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useMovements } from "../hooks/useMovements";
+import { MovementsFilters } from "../components/MovementsFilters";
+import type { MovementsQuery } from "../types";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./StockMov.css";
 
 export default function StockMov() {
-  const [search, setSearch] = useState("");
-  const [evento, setEvento] = useState("");
+  const [filters, setFilters] = useState<MovementsQuery>({
+    kind: "ALL",
+    sort: "date_desc",
+    page: 1,
+    pageSize: 100,
+  });
 
-  const movimientos = [
-    {
-      id: 1,
-      evento: "Ingreso",
-      nombre: "Tela Algodón",
-      stockAnterior: 100,
-      stockActual: 120,
-      fecha: "2025-10-12",
-    },
-    {
-      id: 2,
-      evento: "Egreso",
-      nombre: "Cinta Satinada",
-      stockAnterior: 80,
-      stockActual: 70,
-      fecha: "2025-10-13",
-    },
-    {
-      id: 3,
-      evento: "Ajuste",
-      nombre: "Botón Metal",
-      stockAnterior: 200,
-      stockActual: 195,
-      fecha: "2025-10-13",
-    },
-  ];
+  const { data: movimientos, isLoading, isError, refetch, isFetching } = useMovements(filters);
 
-  // Filtrar por nombre y evento
-  const movimientosFiltrados = movimientos.filter(
-    (m) =>
-      m.nombre.toLowerCase().includes(search.toLowerCase()) &&
-      (evento === "" || m.evento === evento)
-  );
+  // 🔹 Filtrado local
+  const movimientosFiltrados = useMemo(() => {
+    if (!movimientos) return [];
+    let lista = [...movimientos];
 
-  const eventosUnicos = [...new Set(movimientos.map((m) => m.evento))];
+    // filtro por texto
+    if (filters.q) {
+      const q = filters.q.toLowerCase();
+      lista = lista.filter(
+        (m) => m.nombre.toLowerCase().includes(q) || m.sku?.toLowerCase().includes(q)
+      );
+    }
+
+    // filtro por fecha
+    if (filters.from) lista = lista.filter((m) => m.fecha >= filters.from);
+    if (filters.to) lista = lista.filter((m) => m.fecha <= filters.to);
+
+    // filtro por tipo
+    if (filters.kind !== "ALL") lista = lista.filter((m) => m.kind === filters.kind);
+
+    return lista;
+  }, [movimientos, filters]);
+
+  if (isLoading) return <div className="alert alert-info">Cargando movimientos…</div>;
+  if (isError) return <div className="alert alert-danger">Error al cargar los movimientos.</div>;
 
   return (
     <div className="movimientos-container container-fluid pt-4 px-4">
       <div className="movimientos-card bg-light text-center rounded p-4">
-        <div className="movimientos-header d-flex align-items-center justify-content-between mb-4">
+        <div className="d-flex align-items-center justify-content-between mb-3">
           <h6 className="mb-0">Movimientos de Stock</h6>
 
           <div className="d-flex gap-2">
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              placeholder="Buscar producto..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ width: "200px" }}
-            />
-
-            <select
-              className="form-select form-select-sm"
-              value={evento}
-              onChange={(e) => setEvento(e.target.value)}
-              style={{ width: "150px" }}
+            <small className="text-muted">
+              {movimientosFiltrados.length} resultados
+            </small>
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
             >
-              <option value="">Todos los eventos</option>
-              {eventosUnicos.map((ev) => (
-                <option key={ev} value={ev}>
-                  {ev}
-                </option>
-              ))}
-            </select>
+              {isFetching ? "Actualizando..." : "Actualizar"}
+            </button>
           </div>
+        </div>
+
+        {/* 🔹 Filtros */}
+        <div className="mb-3">
+          <MovementsFilters value={filters} onChange={setFilters} />
         </div>
 
         <div className="table-responsive">
           <table className="table text-start align-middle table-bordered table-hover mb-0">
             <thead>
               <tr className="text-dark">
-                <th scope="col">Evento</th>
-                <th scope="col">Nombre</th>
-                <th scope="col">Stock Anterior</th>
-                <th scope="col">Stock Actual</th>
-                <th scope="col">Diferencia</th>
-                <th scope="col">Fecha</th>
+                <th>Evento</th>
+                <th>Nombre</th>
+                <th>Stock Anterior</th>
+                <th>Stock Actual</th>
+                <th>Diferencia</th>
+                <th>Fecha</th>
               </tr>
             </thead>
             <tbody>

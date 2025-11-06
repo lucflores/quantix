@@ -5,12 +5,13 @@ const productSchema = z.object({
   id: z.string(),
   sku: z.string(),
   name: z.string(),
-  unit: z.enum(["UNIT", "KG", "LT", "M"]),
-  step: z.number(),
-  cost: z.number(),
+  description: z.string().optional(),
+  unit: z.enum(["UNIT", "KG", "LT", "M"]).optional(),
+  step: z.number().optional(),
+  cost: z.number().optional(),
   price: z.number(),
-  stock: z.number(),
-  minStock: z.number(),
+  stock: z.number().optional(),
+  minStock: z.number().optional(),
   active: z.boolean(),
 });
 const listSchema = z.array(productSchema);
