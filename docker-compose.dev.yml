@@ -24,7 +24,7 @@ services:
       SEED_ADMIN_EMAIL: admin@quantix.local
       SEED_ADMIN_PASSWORD: "1234"
     ports:
-      - "3000:3000"
+      - "3001:3000"
       - "5555:5555"
     volumes:
       - ./quantix-api:/app

@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Quantix Dark Theme - Futuristic Inventory System */
+    --background: 215 28% 5%;
+    --foreground: 210 20% 98%;
+
+    --card: 217 25% 8%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 217 25% 10%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 203 100% 13%;
+    --primary-foreground: 210 20% 98%;
+
+    --secondary: 173 58% 39%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 217 25% 15%;
+    --muted-foreground: 215 15% 65%;
+
+    --accent: 173 58% 39%;
+    --accent-foreground: 210 20% 98%;
+
+    --destructive: 0 0% 50%;
+    --destructive-foreground: 210 20% 98%;
+
+    /* Red tokens for negative states - #EF4444 base */
+    --error: 0 84% 60%;
+    --error-foreground: 210 20% 98%;
+    --error-hover: 0 84% 55%;
+    --error-active: 0 84% 50%;
+    --error-disabled: 0 40% 50%;
+
+    --border: 217 25% 15%;
+    --input: 217 25% 12%;
+    --ring: 173 58% 39%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 217 25% 8%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 203 100% 13%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 217 25% 15%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 217 25% 12%;
+    --sidebar-ring: 173 58% 39%;
+
+    /* Custom Quantix tokens */
+    --gradient-primary: linear-gradient(135deg, hsl(203 100% 13%), hsl(173 58% 39%));
+    --gradient-subtle: linear-gradient(180deg, hsl(217 25% 8%), hsl(215 28% 5%));
+    --shadow-glow: 0 0 40px hsla(173, 58%, 39%, 0.15);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Light Mode */
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 215 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    --primary: 203 100% 13%;
+    --primary-foreground: 210 20% 98%;
+
+    --secondary: 173 58% 39%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 15% 45%;
+
+    --accent: 173 58% 39%;
+    --accent-foreground: 210 20% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 20% 98%;
+
+    /* Red tokens for light mode */
+    --error: 0 84% 60%;
+    --error-foreground: 0 0% 100%;
+    --error-hover: 0 84% 55%;
+    --error-active: 0 84% 50%;
+    --error-disabled: 0 40% 70%;
+
+    --border: 210 20% 90%;
+    --input: 210 20% 96%;
+    --ring: 173 58% 39%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 25% 15%;
+    --sidebar-primary: 203 100% 13%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 215 25% 15%;
+    --sidebar-border: 210 20% 90%;
+    --sidebar-ring: 173 58% 39%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(203 100% 13%), hsl(173 58% 39%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --shadow-glow: 0 0 40px hsla(173, 58%, 39%, 0.15);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card/50 backdrop-blur-sm border-border/50;
+  }
+
+  .btn-gradient {
+    background: var(--gradient-primary);
+    @apply border-0 shadow-lg transition-all hover:scale-105;
+  }
+
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
