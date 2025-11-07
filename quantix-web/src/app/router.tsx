@@ -7,7 +7,7 @@ import { ProductsPage } from '@/features/products/ProductsPage';
 import { MovementsPage } from '@/features/movements/MovementsPage';
 import { PurchasesPage } from '@/features/purchases/PurchasesPage';
 import { SalesPage } from '@/features/sales/SalesPage';
-import { CustomersPage } from '@/features/customers/CustomersPage';
+import { CustomersPage } from '@/features/customers/CustomerPage';
 import { LowStockReport } from '@/features/reports/LowStockReport';
 import NotFound from '@/pages/NotFound';
 

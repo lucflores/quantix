@@ -36,12 +36,12 @@ services:
 
   frontend:
     build:
-      context: ./quantix-frontend
+      context: ./quantix-web
       dockerfile: Dockerfile.dev
     ports:
-      - "5173:5173"
+      - "8080:8080"
     volumes:
-      - ./quantix-frontend:/app:delegated
+      - ./quantix-web:/app:delegated
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true

@@ -53,7 +53,10 @@ export const SalesPage = () => {
                 {recentSales?.map((sale) => (
                   <TableRow key={sale.id} className="hover:bg-muted/30">
                     <TableCell className="text-muted-foreground text-sm">
-                      {new Date(sale.date).toLocaleString()}
+                      {(() => {
+                        const d = new Date(sale.date);
+                        return isNaN(d.getTime()) ? String(sale.date) : d.toLocaleString();
+                      })()}
                     </TableCell>
                     <TableCell className="font-medium text-foreground">
                       {sale.customerName ?? "Público General"}
