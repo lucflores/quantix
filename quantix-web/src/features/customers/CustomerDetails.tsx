@@ -27,6 +27,31 @@ function formatARDateTime(value?: string) {
   });
 }
 
+function balanceHeading(balanceNumber: number) {
+  if (balanceNumber > 0) {
+    // deuda
+    return {
+      label: "Saldo a pagar:",
+      amountText: `$${balanceNumber.toFixed(2)}`,
+      className: "text-error font-semibold",
+    };
+  }
+  if (balanceNumber < 0) {
+    // crédito
+    return {
+      label: "Saldo a favor:",
+      amountText: `$${Math.abs(balanceNumber).toFixed(2)}`,
+      className: "text-accent font-semibold",
+    };
+  }
+  // en cero
+  return {
+    label: "Cuenta al día:",
+    amountText: "$0.00",
+    className: "text-foreground font-semibold",
+  };
+}
+
 export function CustomerDetails({ open, onOpenChange, customerId, customerName }: Props) {
   const { data, isLoading } = useCustomerActivity(customerId);
   const { mutateAsync: addPayment, isPending } = useAddPayment();
@@ -51,6 +76,8 @@ export function CustomerDetails({ open, onOpenChange, customerId, customerName }
     }
   };
 
+  const heading = balanceHeading(balance);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border max-w-3xl">
@@ -61,10 +88,8 @@ export function CustomerDetails({ open, onOpenChange, customerId, customerName }
         {/* Balance + pagar */}
         <div className="flex items-end gap-3 mb-6">
           <div className="text-lg">
-            <span className="text-muted-foreground">Saldo:</span>{" "}
-            <span className={balance < 0 ? "text-error font-semibold" : "text-accent font-semibold"}>
-              {balance < 0 ? "-" : ""}${Math.abs(balance).toFixed(2)}
-            </span>
+            <span className="text-muted-foreground">{heading.label}</span>{" "}
+            <span className={heading.className}>{heading.amountText}</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <Input
@@ -115,6 +140,10 @@ export function CustomerDetails({ open, onOpenChange, customerId, customerName }
               {(data?.items ?? []).map((it) => {
                 const amt = Number(it.amount ?? 0);
                 const isPayment = it.type === "PAYMENT";
+                const amountAbs = Math.abs(amt);
+                // Colores por tipo (monto siempre positivo)
+                const amountClass = isPayment ? "text-accent font-medium" : "text-error font-medium";
+
                 return (
                   <TableRow key={it.id} className="hover:bg-muted/30">
                     {[
@@ -122,9 +151,7 @@ export function CustomerDetails({ open, onOpenChange, customerId, customerName }
                       <TableCell key="c-tipo" className="text-foreground">{isPayment ? "Pago" : "Venta"}</TableCell>,
                       <TableCell key="c-venta" className="text-foreground">{it.saleNumber ?? "—"}</TableCell>,
                       <TableCell key="c-monto" className="text-right">
-                        <span className={isPayment ? "text-accent font-medium" : "text-error font-medium"}>
-                          {isPayment ? "-" : ""}${Math.abs(amt).toFixed(2)}
-                        </span>
+                        <span className={amountClass}>${amountAbs.toFixed(2)}</span>
                       </TableCell>,
                     ]}
                   </TableRow>

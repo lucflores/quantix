@@ -40,25 +40,47 @@ const Row = memo(function Row({
   const { data: balance, isLoading } = useCustomerBalance(c.id);
   const [toggling, setToggling] = useState(false);
 
-  const saldoText = useMemo(() => {
-    if (isLoading) return "—";
+  const {
+    label: saldoLabel,
+    amountText: saldoAmount,
+    amountClass: saldoClass,
+  } = useMemo(() => {
+    if (isLoading) {
+      return { label: "—", amountText: "—", amountClass: "text-muted-foreground" };
+    }
     const v = Number(balance ?? 0);
-    const sign = v < 0 ? "-" : "";
-    return `${sign}$${Math.abs(v).toFixed(2)}`;
-  }, [balance, isLoading]);
+    const abs = Math.abs(v).toFixed(2);
 
-  const saldoClass = useMemo(() => {
-    if (isLoading) return "text-muted-foreground";
-    return (balance ?? 0) < 0 ? "text-error font-semibold" : "text-accent font-semibold";
+    if (v > 0) {
+      // deuda
+      return {
+        label: "A pagar",
+        amountText: `$${abs}`,
+        amountClass: "text-error font-semibold",
+      };
+    }
+    if (v < 0) {
+      // crédito
+      return {
+        label: "A favor",
+        amountText: `$${abs}`,
+        amountClass: "text-accent font-semibold",
+      };
+    }
+    // en cero
+    return {
+      label: "Al día",
+      amountText: "$0.00",
+      amountClass: "text-foreground font-semibold",
+    };
   }, [balance, isLoading]);
 
   const toggle = async () => {
-    // 🛑 Bloqueo front: no permitir desactivar si hay saldo
+    // 🛑 Bloqueo front: no permitir desactivar si hay saldo (deuda o crédito)
     if (c.active && (balance ?? 0) !== 0) {
-      toast.error("No se puede desactivar: tiene saldo pendiente");
+      toast.error("No se puede desactivar: tiene movimientos pendientes (saldo distinto de $0)");
       return;
     }
-
     setToggling(true);
     try { await onToggleActive(c.id, c.active); }
     finally { setToggling(false); }
@@ -70,8 +92,24 @@ const Row = memo(function Row({
       <TableCell className="text-muted-foreground">{c.email ?? <Badge variant="outline">—</Badge>}</TableCell>
       <TableCell className="text-muted-foreground">{c.phone ?? <Badge variant="outline">—</Badge>}</TableCell>
 
-      {/* saldo */}
-      <TableCell className="text-right"><span className={saldoClass}>{saldoText}</span></TableCell>
+      {/* saldo (chip + monto en valor absoluto) */}
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-2">
+          <Badge
+            variant="outline"
+            className={
+              saldoLabel === "A pagar"
+                ? "border-error/30 text-error"
+                : saldoLabel === "A favor"
+                ? "border-accent/30 text-accent"
+                : "text-muted-foreground"
+            }
+          >
+            {saldoLabel}
+          </Badge>
+          <span className={saldoClass}>{saldoAmount}</span>
+        </div>
+      </TableCell>
 
       {/* estado */}
       <TableCell className="text-center">
