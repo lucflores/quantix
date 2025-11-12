@@ -1,13 +1,15 @@
 # Etapa base: Node 20
 FROM node:20
 
-# Directorio de trabajo dentro del contenedor
 WORKDIR /app
 
 # Copiamos los archivos de dependencias primero
 COPY package*.json ./
 
-# Instalamos dependencias (todas, incluyendo las devDependencies)
+# ⚠️ Fuerza entorno de desarrollo antes de instalar
+ENV NODE_ENV=development
+
+# Instalamos dependencias (incluyendo devDependencies)
 RUN npm install
 
 # Copiamos el resto del proyecto
