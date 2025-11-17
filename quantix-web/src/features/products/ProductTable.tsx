@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Power } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { api } from "@/core/api/client";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Power } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -9,86 +10,172 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
+import { toast } from "sonner";
 
 interface ProductTableProps {
   searchTerm: string;
+  refreshKey: number;
+  onEdit: (product: Product) => void;
 }
 
-// Mock data
-const mockProducts = [
-  { id: '1', sku: 'PROD-001', name: 'Laptop Dell XPS 13', cost: 850, price: 1200, stock: 15, minStock: 5, active: true },
-  { id: '2', sku: 'PROD-002', name: 'Mouse Logitech MX Master', cost: 45, price: 85, stock: 3, minStock: 10, active: true },
-  { id: '3', sku: 'PROD-003', name: 'Teclado Mecánico RGB', cost: 65, price: 120, stock: 25, minStock: 8, active: true },
-  { id: '4', sku: 'PROD-004', name: 'Monitor LG 27" 4K', cost: 320, price: 550, stock: 8, minStock: 5, active: false },
-  { id: '5', sku: 'PROD-005', name: 'Webcam Logitech C920', cost: 55, price: 95, stock: 12, minStock: 6, active: true },
-];
+export interface Product {
+  id: string;
+  sku: string;
+  name: string;
+  cost: number;
+  price: number;
+  stock: number;
+  minStock: number;
+  active: boolean;
+}
 
-export const ProductTable = ({ searchTerm }: ProductTableProps) => {
-  const [products] = useState(mockProducts);
+export const ProductTable = ({
+  searchTerm,
+  refreshKey,
+  onEdit,
+}: ProductTableProps) => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredProducts = products.filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/products", {
+        params: { q: searchTerm, limit: 200, includeInactive: 1 },
+      });
+      setProducts(res.data.items || []);
+    } catch {
+      toast.error("Error cargando productos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, [refreshKey]);
+
+  useEffect(() => {
+    const timeout = setTimeout(loadProducts, 300);
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
+
+  // --- Activar / desactivar ---
+  const toggleStatus = async (product: Product) => {
+    try {
+      const newState = !product.active;
+
+      await api.patch(`/products/${product.id}/status`, { active: newState });
+
+      toast.success(newState ? "Producto activado" : "Producto desactivado");
+      loadProducts();
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        (err?.response?.status === 409
+          ? "No se puede desactivar un producto con stock > 0"
+          : "No se pudo cambiar el estado");
+
+      toast.error(msg);
+    }
+  };
 
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="text-foreground font-semibold">SKU</TableHead>
-            <TableHead className="text-foreground font-semibold">Nombre</TableHead>
-            <TableHead className="text-foreground font-semibold text-right">Costo</TableHead>
-            <TableHead className="text-foreground font-semibold text-right">Precio</TableHead>
-            <TableHead className="text-foreground font-semibold text-center">Stock</TableHead>
-            <TableHead className="text-foreground font-semibold text-center">Stock Mín.</TableHead>
-            <TableHead className="text-foreground font-semibold text-center">Estado</TableHead>
-            <TableHead className="text-foreground font-semibold text-right">Acciones</TableHead>
+            <TableHead>SKU</TableHead>
+            <TableHead>Nombre</TableHead>
+            <TableHead className="text-right">Costo</TableHead>
+            <TableHead className="text-right">Precio</TableHead>
+            <TableHead className="text-center">Stock</TableHead>
+            <TableHead className="text-center">Stock Mín.</TableHead>
+            <TableHead className="text-center">Estado</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
+
         <TableBody>
-          {filteredProducts.length === 0 ? (
+          {loading ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={8} className="text-center py-8">
+                Cargando...
+              </TableCell>
+            </TableRow>
+          ) : products.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={8}
+                className="text-center py-8 text-muted-foreground"
+              >
                 No se encontraron productos
               </TableCell>
             </TableRow>
           ) : (
-            filteredProducts.map((product) => (
+            products.map((product) => (
               <TableRow key={product.id} className="hover:bg-muted/30">
-                <TableCell className="font-mono text-sm text-accent">{product.sku}</TableCell>
-                <TableCell className="font-medium text-foreground">{product.name}</TableCell>
-                <TableCell className="text-right text-muted-foreground">${product.cost}</TableCell>
-                <TableCell className="text-right text-foreground font-semibold">${product.price}</TableCell>
+                <TableCell>{product.sku}</TableCell>
+                <TableCell>{product.name}</TableCell>
+
+                <TableCell className="text-right">
+                  ${product.cost.toFixed(2)}
+                </TableCell>
+
+                <TableCell className="text-right font-semibold">
+                  ${product.price.toFixed(2)}
+                </TableCell>
+
                 <TableCell className="text-center">
-                  <Badge variant={product.stock <= product.minStock ? 'destructive' : 'secondary'}>
+                  <Badge
+                    variant={
+                      product.stock <= product.minStock
+                        ? "destructive"
+                        : "secondary"
+                    }
+                  >
                     {product.stock}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-center text-muted-foreground">{product.minStock}</TableCell>
+
                 <TableCell className="text-center">
-                  <Badge 
-                    variant={product.active ? 'default' : 'outline'} 
-                    className={product.active 
-                      ? 'bg-accent/20 text-accent border-accent/30 hover:bg-accent/30' 
-                      : 'bg-error/10 text-error border-error/30 hover:bg-error/20'
+                  {product.minStock}
+                </TableCell>
+
+                <TableCell className="text-center">
+                  <Badge
+                    variant={product.active ? "default" : "outline"}
+                    className={
+                      product.active
+                        ? "bg-accent/20 text-accent border-accent/30"
+                        : "bg-error/10 text-error border-error/30"
                     }
                   >
-                    {product.active ? 'Activo' : 'Inactivo'}
+                    {product.active ? "Activo" : "Inactivo"}
                   </Badge>
                 </TableCell>
+
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" className="text-accent hover:text-accent hover:bg-accent/10">
+                    {/* EDITAR → abre modal en ProductsPage */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-accent"
+                      onClick={() => onEdit(product)}
+                    >
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-accent hover:text-accent hover:bg-accent/10">
+
+                    {/* ACTIVAR / DESACTIVAR */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-accent"
+                      onClick={() => toggleStatus(product)}
+                    >
                       <Power className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-muted-foreground hover:bg-muted/50">
-                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </TableCell>

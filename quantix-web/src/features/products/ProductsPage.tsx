@@ -1,29 +1,32 @@
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
-import { ProductTable } from './ProductTable';
-import { ProductForm } from './ProductForm';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus, Search } from "lucide-react";
+import { ProductTable } from "./ProductTable";
+import { ProductForm, Product } from "./ProductForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const ProductsPage = () => {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = () => setRefreshKey(k => k + 1);
 
   return (
     <div className="space-y-6">
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Productos</h1>
           <p className="text-muted-foreground">Gestión de inventario y stock</p>
         </div>
-        <Button onClick={() => setIsFormOpen(true)} className="btn-gradient">
+
+        <Button onClick={() => setIsCreateOpen(true)} className="btn-gradient">
           <Plus className="w-4 h-4 mr-2" />
           Nuevo Producto
         </Button>
@@ -32,27 +35,64 @@ export const ProductsPage = () => {
       <Card className="p-6 glass-card">
         <div className="flex items-center gap-4 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar productos por SKU o nombre..."
+              className="pl-10"
+              placeholder="Buscar productos..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-input border-border"
+              onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        <ProductTable searchTerm={searchTerm} />
+        <ProductTable
+          searchTerm={searchTerm}
+          refreshKey={refreshKey}
+          onEdit={(product) => {
+            setProductToEdit(product);
+            setIsEditOpen(true);
+          }}
+        />
       </Card>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-card border-border max-w-2xl">
+
+      {/* === MODAL CREAR === */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Nuevo Producto</DialogTitle>
+            <DialogTitle>Nuevo Producto</DialogTitle>
           </DialogHeader>
-          <ProductForm onSuccess={() => setIsFormOpen(false)} />
+
+          <ProductForm
+            onSuccess={() => {
+              setIsCreateOpen(false);
+              refresh();
+            }}
+          />
         </DialogContent>
       </Dialog>
+
+
+      {/* === MODAL EDITAR → AHORA SE MONTA ACÁ Y FUNCIONA! === */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Producto</DialogTitle>
+          </DialogHeader>
+
+          {productToEdit && (
+            <ProductForm
+              product={productToEdit}
+              onSuccess={() => {
+                setIsEditOpen(false);
+                setProductToEdit(null);
+                refresh();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
