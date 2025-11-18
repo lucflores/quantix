@@ -42,20 +42,24 @@ const HistoryRow = memo(function HistoryRow({
   c: Purchase;
   onView: (p: Purchase) => void;
 }) {
+  const providerName = c.supplierRel?.name || (c.supplierId ? "Proveedor asociado" : "N/A");
+  
   return (
     <TableRow className="hover:bg-muted/30">
       <TableCell className="text-muted-foreground">{formatARDate(c.createdAt)}</TableCell>
       <TableCell className="font-medium text-foreground">
-        {c.supplierRel?.name ?? (c.supplierId ? "..." : "N/A")}
+        {providerName}
       </TableCell>
       <TableCell className="text-right font-semibold text-accent">
         ${calculateTotal(c).toFixed(2)}
       </TableCell>
+
       <TableCell className="text-center">
         <Badge variant="secondary" className="bg-accent/20 text-accent border-accent/30">
           {c.items?.length ?? 0}
         </Badge>
       </TableCell>
+
       <TableCell className="text-right">
         <TooltipProvider>
           <Tooltip>
