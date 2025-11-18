@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import {
@@ -9,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useMovements } from '@/features/movements/hooks/useMovements';
 
 interface MovementsTableProps {
   filters: {
@@ -19,52 +19,17 @@ interface MovementsTableProps {
 }
 
 export const MovementsTable = ({ filters }: MovementsTableProps) => {
-  const [movements, setMovements] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // 🔥 React Query reemplaza el fetch manual
+  const { data: movements = [], isLoading } = useMovements();
 
-  useEffect(() => {
-    const fetchMovements = async () => {
-      try {
-        const token = localStorage.getItem('token');
-
-        const res = await fetch('/api/v1/movements', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const raw = await res.json();
-
-        // 🔥 NORMALIZAMOS LOS DATOS DEL BACKEND
-        const data = Array.isArray(raw)
-          ? raw.map((m: any) => ({
-              id: m.id,
-              kind: m.kind, // IN | OUT
-              quantity: Number(m.quantity) || 0,
-              createdAt: m.createdAt,
-              productName: m.product?.name ?? "—",
-              userName: m.createdBy?.name ?? m.createdById ?? "—",
-            }))
-          : [];
-
-        setMovements(data);
-      } catch (error) {
-        console.error('Error cargando movimientos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMovements();
-  }, []);
-
-  // 🔎 FILTROS
-  const filteredMovements = movements.filter((m) => {
+  // 🔎 Aplicar filtros
+  const filteredMovements = movements.filter((m: any) => {
     if (filters.type !== 'all' && m.kind !== filters.type) return false;
     return true;
   });
 
-  if (loading) {
+  // ⏳ Loading
+  if (isLoading) {
     return (
       <div className="p-6 text-center text-muted-foreground">
         Cargando movimientos...
@@ -95,7 +60,7 @@ export const MovementsTable = ({ filters }: MovementsTableProps) => {
               </TableCell>
             </TableRow>
           ) : (
-            filteredMovements.map((m) => (
+            filteredMovements.map((m: any) => (
               <TableRow key={m.id} className="hover:bg-muted/30">
                 <TableCell className="text-muted-foreground">
                   {new Date(m.createdAt).toLocaleString()}
