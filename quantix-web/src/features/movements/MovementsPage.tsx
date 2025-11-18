@@ -49,8 +49,8 @@ export const MovementsPage = () => {
               </SelectTrigger>
               <SelectContent className="bg-popover border-border">
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="IN">Entrada (IN)</SelectItem>
-                <SelectItem value="OUT">Salida (OUT)</SelectItem>
+                <SelectItem value="IN">Entrada</SelectItem>
+                <SelectItem value="OUT">Salida</SelectItem>
               </SelectContent>
             </Select>
           </div>

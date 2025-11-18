@@ -9,7 +9,6 @@ import { CustomerTable } from "./CustomerTable";
 import { CustomerDetails } from "./CustomerDetails";
 import CustomerForm from "./CustomerForm";
 import type { Customer } from "./types";
-
 import { 
   useDisableCustomer, 
   useEnableCustomer,

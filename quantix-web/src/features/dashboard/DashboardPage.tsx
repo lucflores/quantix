@@ -1,5 +1,3 @@
-// quantix-web/src/features/dashboard/DashboardPage.tsx
-
 import { Card } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { 
@@ -10,17 +8,12 @@ import {
   BarChart3,
   ArrowLeftRight,
   AlertCircle,
-  TrendingDown,
-  DollarSign, // Agregado para Ventas
-  Box, // Para Proveedores
-  Loader2, // Para estado de carga
-  UserPlus, // Para nuevo cliente
+  Loader2, 
+  UserPlus,
+  Truck, 
 } from 'lucide-react';
-
-// <-- Hook de Métricas Real -->
 import { useDashboardMetrics } from '@/features/reports/hooks/useReports'; 
 
-// --- HELPERS (Copias de los que ya usamos) ---
 function formatCurrency(value: string | number) {
     const num = parseFloat(String(value));
     if (isNaN(num)) return '$0.00';
@@ -46,16 +39,14 @@ function timeSince(date: string) {
     if (interval > 1) return Math.floor(interval) + " minutos";
     return Math.floor(seconds) + " segundos";
 }
-// --- FIN HELPERS ---
 
 
-// Definiciones de Acceso Rápido (Añadido Proveedores)
 const quickActions = [
   { name: 'Productos', href: '/products', icon: Package, description: 'Gestionar productos' },
   { name: 'Compras', href: '/purchases', icon: ShoppingCart, description: 'Gestionar compras' },
   { name: 'Ventas', href: '/sales', icon: TrendingUp, description: 'Gestionar ventas' },
   { name: 'Clientes', href: '/customers', icon: Users, description: 'Gestionar clientes' },
-  { name: 'Proveedores', href: '/suppliers', icon: Box, description: 'Gestionar proveedores' }, // Añadido
+  { name: 'Proveedores', href: '/suppliers', icon: Truck, description: 'Gestionar proveedores' }, 
   { name: 'Movimientos', href: '/movements', icon: ArrowLeftRight, description: 'Gestionar movimientos' },
   { name: 'Stock', href: '/reports/low-stock', icon: BarChart3, description: 'Ver productos en alerta' },
 ];

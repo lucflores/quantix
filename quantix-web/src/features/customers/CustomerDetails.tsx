@@ -29,7 +29,6 @@ function formatARDateTime(value?: string) {
 
 function balanceHeading(balanceNumber: number) {
   if (balanceNumber > 0) {
-    // deuda
     return {
       label: "Saldo a pagar:",
       amountText: `$${balanceNumber.toFixed(2)}`,
@@ -37,14 +36,12 @@ function balanceHeading(balanceNumber: number) {
     };
   }
   if (balanceNumber < 0) {
-    // crédito
     return {
       label: "Saldo a favor:",
       amountText: `$${Math.abs(balanceNumber).toFixed(2)}`,
       className: "text-accent font-semibold",
     };
   }
-  // en cero
   return {
     label: "Cuenta al día:",
     amountText: "$0.00",
@@ -69,7 +66,6 @@ export function CustomerDetails({ open, onOpenChange, customerId, customerName }
       }
       await addPayment({ customerId, amount: n, method: "EFECTIVO" });
       setAmount("");
-      // éxito lo muestra el hook
     } catch (e: any) {
       const msg = e?.response?.data?.message || e?.response?.data?.error || "No se pudo registrar el pago";
       toast.error(msg);
@@ -85,7 +81,6 @@ export function CustomerDetails({ open, onOpenChange, customerId, customerName }
           <DialogTitle className="text-foreground">Actividad de {customerName ?? "Cliente"}</DialogTitle>
         </DialogHeader>
 
-        {/* Balance + pagar */}
         <div className="flex items-end gap-3 mb-6">
           <div className="text-lg">
             <span className="text-muted-foreground">{heading.label}</span>{" "}
@@ -105,7 +100,6 @@ export function CustomerDetails({ open, onOpenChange, customerId, customerName }
           </div>
         </div>
 
-        {/* Tabla de actividad (sin columna Descripción) */}
         <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
@@ -141,7 +135,6 @@ export function CustomerDetails({ open, onOpenChange, customerId, customerName }
                 const amt = Number(it.amount ?? 0);
                 const isPayment = it.type === "PAYMENT";
                 const amountAbs = Math.abs(amt);
-                // Colores por tipo (monto siempre positivo)
                 const amountClass = isPayment ? "text-accent font-medium" : "text-error font-medium";
 
                 return (
