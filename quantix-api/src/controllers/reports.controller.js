@@ -156,3 +156,88 @@ export async function recentSales(req, res, next) {
     next(err);
   }
 }
+
+function startOfMonth() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+}
+
+export async function getDashboardMetrics(req, res, next) {
+    try {
+        const startOfCurrentMonth = startOfMonth();
+        const activeProductsPromise = prisma.product.count({ where: { active: true } });
+        const activeCustomersPromise = prisma.customer.count({ where: { active: true } });
+        const salesTotalPromise = prisma.$queryRaw`
+            SELECT COALESCE(SUM(si."quantity" * si."unitPrice"), 0)::DECIMAL(12,2) AS total
+            FROM "Sale" s
+            JOIN "SaleItem" si ON si."saleId" = s.id
+            WHERE s."createdAt" >= ${startOfCurrentMonth}::timestamp
+        `;
+
+        const lowStockRawPromise = prisma.product.findMany({
+            where: { active: true },
+            select: { stock: true, minStock: true },
+        });
+
+        const recentSalesPromise = prisma.sale.findMany({
+             take: 5,
+             orderBy: { createdAt: 'desc' },
+             include: { customerRel: { select: { name: true } } }
+        });
+
+        const recentCustomersPromise = prisma.customer.findMany({
+             take: 5,
+             orderBy: { createdAt: 'desc' },
+             select: { name: true, createdAt: true }
+        });
+        const [
+            activeProducts, 
+            salesTotalResult,
+            lowStockRaw,
+            activeCustomers,
+            recentSales,
+            recentCustomers
+        ] = await Promise.all([
+            activeProductsPromise,
+            salesTotalPromise,
+            lowStockRawPromise,
+            activeCustomersPromise,
+            recentSalesPromise,
+            recentCustomersPromise
+        ]);
+
+        const lowStockCount = lowStockRaw.filter(p => {
+            const stock = new Prisma.Decimal(p.stock);
+            const minStock = new Prisma.Decimal(p.minStock);
+            return stock.lte(minStock);
+        }).length;
+        const salesTotal = new Prisma.Decimal(salesTotalResult[0]?.total || 0);
+        const combinedActivity = [
+            ...(recentSales.map(s => ({ 
+                ...s, 
+                customerName: s.customerRel?.name || 'Público General',
+            }))),
+        ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+
+        res.json({
+            activeProducts: activeProducts,
+            lowStockCount: lowStockCount,
+            activeCustomers: activeCustomers,
+            salesThisMonth: salesTotal.toFixed(2), 
+            recentActivity: {
+                sales: combinedActivity.filter(a => a.type === 'SALE'),
+                customers: recentCustomers.map(c => ({
+                    id: c.id,
+                    type: 'CUSTOMER_REGISTER',
+                    name: c.name,
+                    createdAt: c.createdAt,
+                }))
+            }
+        });
+
+    } catch (error) {
+        console.error("❌ Dashboard metrics error:", error);
+        next(error);
+    }
+}
