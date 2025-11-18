@@ -1,9 +1,17 @@
 import { api } from "@/core/api/client";
-import type { CreateCustomerDto, UpdateCustomerDto, Customer } from "./types";
+import type { CreateCustomerDto, UpdateCustomerDto, Customer, CustomersResponse
+} from "./types";
 
-export async function getCustomers(): Promise<Customer[]> {
-  const { data } = await api.get("/customers");
-  return Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+export async function getCustomers(
+  page: number = 1, 
+  limit: number = 20, 
+  q: string = ''
+): Promise<CustomersResponse> {
+  
+  const { data } = await api.get<CustomersResponse>("/customers", {
+    params: { page, limit, q } 
+  });
+  return data;
 }
 
 export async function createCustomer(dto: CreateCustomerDto) {

@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useState, useMemo } from "react"; 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -6,55 +6,23 @@ import { Edit, Eye, Power, Loader2 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { toast } from "sonner";
-import { useCustomerBalance } from "./hooks/useCustomers"; 
-import type { Customer, CustomersResponse } from "./types";
 
-const Row = memo(function Row({
+import { useSuppliers } from "./hooks/useSuppliers"; 
+import type { Supplier } from "./types";
+
+const SupplierRow = memo(function SupplierRow({
   c, onView, onEdit, onToggleActive,
-}: { c: Customer; onView: (c: Customer) => void; onEdit: (c: Customer) => void; onToggleActive: (id: string, active: boolean) => Promise<void> | void }) {
-  const { data: balance, isLoading } = useCustomerBalance(c.id);
+}: {
+  c: Supplier;
+  onView: (s: Supplier) => void;
+  onEdit: (s: Supplier) => void;
+  onToggleActive: (id: string, active: boolean) => Promise<void> | void;
+}) {
   const [toggling, setToggling] = useState(false);
 
-  const {
-    label: saldoLabel,
-    amountText: saldoAmount,
-    amountClass: saldoClass,
-  } = useMemo(() => {
-    if (isLoading) {
-      return { label: "—", amountText: "—", amountClass: "text-muted-foreground" };
-    }
-    const v = Number(balance ?? 0);
-    const abs = Math.abs(v).toFixed(2);
-
-    if (v > 0) {
-      return {
-        label: "A pagar",
-        amountText: `$${abs}`,
-        amountClass: "text-error font-semibold",
-      };
-    }
-    if (v < 0) {
-      return {
-        label: "A favor",
-        amountText: `$${abs}`,
-        amountClass: "text-accent font-semibold",
-      };
-    }
-    return {
-      label: "Al día",
-      amountText: "$0.00",
-      amountClass: "text-foreground font-semibold",
-    };
-  }, [balance, isLoading]);
-
   const toggle = async () => {
-    if (c.active && (balance ?? 0) !== 0) {
-      toast.error("No se puede desactivar: tiene movimientos pendientes (saldo distinto de $0)");
-      return;
-    }
     setToggling(true);
-    try { await onToggleActive(c.id, c.active); }
+    try { await onToggleActive(c.id, c.active); } 
     finally { setToggling(false); }
   };
 
@@ -63,23 +31,7 @@ const Row = memo(function Row({
       <TableCell className="font-medium text-foreground">{c.name}</TableCell>
       <TableCell className="text-muted-foreground">{c.email ?? <Badge variant="outline">—</Badge>}</TableCell>
       <TableCell className="text-muted-foreground">{c.phone ?? <Badge variant="outline">—</Badge>}</TableCell>
-      <TableCell className="text-right">
-        <div className="flex items-center justify-end gap-2">
-          <Badge
-            variant="outline"
-            className={
-              saldoLabel === "A pagar"
-                ? "border-error/30 text-error"
-                : saldoLabel === "A favor"
-                ? "border-accent/30 text-accent"
-                : "text-muted-foreground"
-            }
-          >
-            {saldoLabel}
-          </Badge>
-          <span className={saldoClass}>{saldoAmount}</span>
-        </div>
-      </TableCell>
+      <TableCell className="text-muted-foreground">{c.cuit ?? <Badge variant="outline">—</Badge>}</TableCell>
       <TableCell className="text-center">
         <Badge
           variant={c.active ? "default" : "outline"}
@@ -133,17 +85,25 @@ const Row = memo(function Row({
 });
 
 type Props = {
-  data: CustomersResponse | undefined;
-  isLoading: boolean;
   search: string;
-  onView: (c: Customer) => void;
-  onEdit: (c: Customer) => void;
+  onView: (s: Supplier) => void;
+  onEdit: (s: Supplier) => void;
   onToggleActive: (id: string, active: boolean) => Promise<void> | void;
 };
 
-export const CustomerTable = ({ data, isLoading, search, onView, onEdit, onToggleActive }: Props) => {
-  
-  const customers = data?.data ?? [];
+export const SupplierTable = ({ search, onView, onEdit, onToggleActive }: Props) => {
+  const { data: suppliers = [], isLoading } = useSuppliers();
+  const filtered = useMemo(() => {
+    const q = (search ?? "").toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter((c) =>
+      (c.name ?? "").toLowerCase().includes(q) ||
+      (c.email ?? "").toLowerCase().includes(q) ||
+      (c.phone ?? "").toLowerCase().includes(q) ||
+      (c.cuit ?? "").toLowerCase().includes(q) 
+    );
+  }, [suppliers, search]);
+
 
   return (
     <div className="rounded-lg border border-border overflow-hidden">
@@ -153,7 +113,7 @@ export const CustomerTable = ({ data, isLoading, search, onView, onEdit, onToggl
             <TableHead className="text-foreground font-semibold">Nombre</TableHead>
             <TableHead className="text-foreground font-semibold">Email</TableHead>
             <TableHead className="text-foreground font-semibold">Teléfono</TableHead>
-            <TableHead className="text-foreground font-semibold text-right">Saldo</TableHead>
+            <TableHead className="text-foreground font-semibold">CUIT</TableHead>
             <TableHead className="text-foreground font-semibold text-center">Estado</TableHead>
             <TableHead className="text-foreground font-semibold text-right">Acciones</TableHead>
           </TableRow>
@@ -169,16 +129,22 @@ export const CustomerTable = ({ data, isLoading, search, onView, onEdit, onToggl
             </TableRow>
           )}
 
-          {!isLoading && data?.totalResults === 0 && (
+          {!isLoading && filtered.length === 0 && ( 
             <TableRow>
               <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                {search ? "No se encontraron clientes" : "Sin clientes"}
+                {search ? "No se encontraron proveedores" : "Sin proveedores"}
               </TableCell>
             </TableRow>
           )}
 
-          {customers.map((c) => (
-            <Row key={c.id} c={c as Customer} onView={onView} onEdit={onEdit} onToggleActive={onToggleActive} />
+          {filtered.map((c) => ( 
+            <SupplierRow 
+              key={c.id} 
+              c={c as Supplier} 
+              onView={onView} 
+              onEdit={onEdit} 
+              onToggleActive={onToggleActive} 
+            />
           ))}
         </TableBody>
       </Table>

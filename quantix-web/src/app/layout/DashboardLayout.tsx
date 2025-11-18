@@ -1,9 +1,12 @@
+// quantix-web/src/app/layout/DashboardLayout.tsx
+
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/hooks/useAuthStore";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   LayoutDashboard, Package, ShoppingCart, TrendingUp,
-  Users, BarChart3, ArrowLeftRight, LogOut
+  Users, BarChart3, ArrowLeftRight, LogOut,
+  Truck // Ícono de Proveedores
 } from "lucide-react";
 import waveBg from "@/assets/wave-bg.png";
 
@@ -14,6 +17,7 @@ const navigation = [
   { name: "Compras", href: "/purchases", icon: ShoppingCart },
   { name: "Ventas", href: "/sales", icon: TrendingUp },
   { name: "Clientes", href: "/customers", icon: Users },
+  { name: "Proveedores", href: "/suppliers", icon: Truck }, // Link de Proveedores
   { name: "Stock", href: "/reports/low-stock", icon: BarChart3 },
 ];
 
@@ -62,6 +66,7 @@ export const DashboardLayout = () => {
                 `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
                     ? "bg-accent/20 text-accent shadow-glow"
+                    // LA LÍNEA DE ABAJO ES LA CORRECCIÓN (sin el *)
                     : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
                 }`
               }

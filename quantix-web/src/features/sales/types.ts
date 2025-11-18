@@ -2,7 +2,7 @@ export type PaymentMethod = "EFECTIVO" | "CTA_CTE";
 
 export type SaleItemInput = {
   productId: string;
-  quantity: number;
+  quantity: number; 
   unitPrice?: number; 
 };
 
@@ -12,10 +12,31 @@ export type CreateSaleDto = {
   items: SaleItemInput[];
 };
 
-export type Sale = {
+export interface Sale {
   id: string;
-  date: string; // ISO
-  customerName?: string;
-  total: number;
+  createdAt: string;
+  customerId: string | null;
   payment: PaymentMethod;
-};
+  customerRel?: {
+    name: string;
+  };
+  
+  items: {
+    id: string;
+    quantity: string; 
+    unitPrice: string; 
+    product?: {
+      name: string;
+      sku: string;
+    };
+  }[];
+  totalAmount?: string; 
+}
+
+export interface SalesResponse {
+  data: Sale[];
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalResults: number;
+}

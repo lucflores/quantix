@@ -1,7 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 
-// helpers
 const d2 = (v) =>
   v instanceof Prisma.Decimal ? v.toFixed(2) : new Prisma.Decimal(v ?? 0).toFixed(2);
 
@@ -25,6 +24,6 @@ export async function listMovements(_req, res, next) {
     });
     return res.json(list.map(serializeMovement));
   } catch (e) {
-    return next(e); // el errorHandler devolverá 500
+    return next(e);
   }
 }

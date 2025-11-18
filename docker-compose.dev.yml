@@ -25,7 +25,7 @@ services:
       SEED_ADMIN_PASSWORD: "1234"
     ports:
       - "3001:3000"
-      - "5555:5555"
+      - "5556:5555"
     volumes:
       - ./quantix-api:/app
       - /app/node_modules

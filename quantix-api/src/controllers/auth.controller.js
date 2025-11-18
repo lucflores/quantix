@@ -13,7 +13,6 @@ function signToken(user) {
   );
 }
 
-// POST /api/v1/auth/register
 export async function register(req, res) {
   try {
     let { email, password, role } = req.body;
@@ -31,14 +30,12 @@ export async function register(req, res) {
       select: { id: true, email: true, role: true, createdAt: true }
     });
 
-    // en registro NO devolvemos token (puede ser política de seguridad)
     return res.status(201).json(user);
   } catch (e) {
     return res.status(400).json({ error: e.message });
   }
 }
 
-// POST /api/v1/auth/login
 export async function login(req, res) {
   try {
     let { email, password } = req.body;
@@ -48,7 +45,6 @@ export async function login(req, res) {
     email = String(email).trim().toLowerCase();
 
     const user = await prisma.user.findUnique({ where: { email } });
-    // Usar 401 para evitar enumeración de usuarios
     if (!user) return res.status(401).json({ error: "Credenciales inválidas" });
 
     const ok = await bcrypt.compare(password, user.password);
@@ -61,7 +57,6 @@ export async function login(req, res) {
   }
 }
 
-// POST /api/v1/auth/change-password
 export async function changePassword(req, res) {
   try {
     const { currentPassword, newPassword } = req.body;

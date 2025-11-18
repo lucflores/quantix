@@ -16,3 +16,11 @@ export type UpdateCustomerDto = {
   email?: string;
   phone?: string;
 };
+
+export interface CustomersResponse {
+  data: Customer[];
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalResults: number;
+}

@@ -1,22 +1,18 @@
 import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 
-// ---- Helpers de unidades/decimales ----
 const DEFAULT_STEP = {
   UNIT: "1.000",
   KG:   "0.001",
   LT:   "0.001",
   M:    "0.001",
 };
-const ALLOWED_UNITS = Object.keys(DEFAULT_STEP); // ['UNIT','KG','LT','M']
+const ALLOWED_UNITS = Object.keys(DEFAULT_STEP); 
 
 const D = (v) => new Prisma.Decimal(v ?? 0);
 const nonNeg = (d) => !d.isNaN() && d.gte(0);
 const isMultipleOf = (value, step) => (step.eq(0) ? true : value.div(step).isInteger());
-
-// Serializa TODO como number para que React no rompa con .toFixed
 const IS_TEST = process.env.NODE_ENV === 'test' || process.env.TEST_COMPAT === '1';
-
 const to2 = (v) => (v && typeof v.toFixed === 'function')
   ? v.toFixed(2)
   : new Prisma.Decimal(v ?? 0).toFixed(2);
@@ -41,7 +37,6 @@ const serializeProduct = (p) => {
       updatedAt: p.updatedAt,
     };
   }
-  // modo normal (dev/prod): numbers para que React formatee sin romper
   return {
     id: p.id,
     sku: p.sku,
@@ -58,7 +53,6 @@ const serializeProduct = (p) => {
   };
 };
 
-// GET /api/v1/products?q=&page=&limit=&includeInactive=1
 export async function listProducts(req, res, next) {
   try {
     const includeInactive = req.query.includeInactive === "1";
@@ -104,17 +98,16 @@ export async function listProducts(req, res, next) {
   }
 }
 
-// POST /api/v1/products  (201)
 export async function createProduct(req, res, next) {
   try {
     const {
       sku,
       name,
       unit = "UNIT",
-      step,                 // opcional: si no viene, usamos default por unidad
+      step,                 
       cost = "0",
       price,
-      stock = "0",          // inicial
+      stock = "0",         
       minStock = "0",
     } = req.body;
 
@@ -125,7 +118,6 @@ export async function createProduct(req, res, next) {
       return res.status(400).json({ error: "unit inválida" });
     }
 
-    // Decimales + defaults
     const dStep  = D(step ?? DEFAULT_STEP[unit]);
     const dCost  = D(cost);
     const dPrice = D(price);
@@ -153,7 +145,7 @@ export async function createProduct(req, res, next) {
         step: dStep,
         cost: dCost,
         price: dPrice,
-        stock: dStock,       // stock inicial permitido si respeta step
+        stock: dStock,      
         minStock: dMin,
         active: true,
       },
@@ -168,9 +160,6 @@ export async function createProduct(req, res, next) {
   }
 }
 
-// PUT /api/v1/products/:id  (200)
-// Permitimos editar: sku, name, cost, price, minStock, step (con validaciones).
-// NO cambiamos unit aquí (cambiar la unidad implica migrar stock; lo dejamos para más adelante).
 export async function updateProduct(req, res, next) {
   try {
     const { id } = req.params;
@@ -178,14 +167,11 @@ export async function updateProduct(req, res, next) {
     const current = await prisma.product.findUnique({ where: { id } });
     if (!current) return res.status(404).json({ error: "No encontrado" });
 
-    // Construimos data con validaciones
     const data = {};
-    // Texto
     for (const k of ["sku", "name"]) {
       if (req.body[k] !== undefined) data[k] = req.body[k];
     }
 
-    // Decimales
     let newStep = null;
     if (req.body.step !== undefined) {
       const d = D(req.body.step);
@@ -193,7 +179,6 @@ export async function updateProduct(req, res, next) {
         return res.status(400).json({ error: "step inválido" });
       }
       newStep = d;
-      // stock y minStock actuales deben respetar el nuevo step
       const stockD = current.stock instanceof Prisma.Decimal ? current.stock : D(current.stock);
       const minD   = current.minStock instanceof Prisma.Decimal ? current.minStock : D(current.minStock);
       if (!isMultipleOf(stockD, newStep)) return res.status(400).json({ error: "stock actual no es múltiplo del nuevo step" });
@@ -229,7 +214,6 @@ export async function updateProduct(req, res, next) {
   }
 }
 
-// PATCH /api/v1/products/:id/status  (activar/desactivar, 200) — sin cambios
 export async function toggleProductStatus(req, res, next) {
   try {
     const { id } = req.params;
@@ -258,7 +242,6 @@ export async function toggleProductStatus(req, res, next) {
   }
 }
 
-// DELETE /api/v1/products/:id  (soft delete → desactivar, 200) — sin cambios
 export async function softDeleteProduct(req, res, next) {
   try {
     const { id } = req.params;

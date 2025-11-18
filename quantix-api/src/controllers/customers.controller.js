@@ -1,31 +1,60 @@
 import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 
-// helper para decimales "xx.xx"
+
 const d2 = (v) =>
   v instanceof Prisma.Decimal ? v.toFixed(2) : new Prisma.Decimal(v ?? 0).toFixed(2);
 
-/** GET /api/v1/customers?q= */
 export async function listCustomers(req, res, next) {
   try {
-    const q = (req.query.q || "").toString().trim();
-    const where = q
-      ? { name: { contains: q, mode: "insensitive" } }
-      : undefined;
+    const { q, page, limit, mode } = req.query;
+    if (mode === 'list') {
+      const items = await prisma.customer.findMany({
+        where: { active: true },
+        orderBy: { name: 'asc' },
+        select: { 
+          id: true, 
+          name: true 
+        } 
+      });
+      return res.json({ items });
+    }
+    const pageNum = Math.max(parseInt(String(page || "1"), 10), 1);
+    const limitNum = Math.min(Math.max(parseInt(String(limit || "20"), 10), 1), 100);
+    const skip = (pageNum - 1) * limitNum;
+    const query = (q || "").toString().trim();
+
+    const where = query
+      ? { 
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { email: { contains: query, mode: "insensitive" } },
+            { phone: { contains: query, mode: "insensitive" } }
+          ]
+        }
+      : {};
 
     const items = await prisma.customer.findMany({
       where,
+      skip,
+      take: limitNum,
       orderBy: { createdAt: "desc" },
-      take: 100,
     });
+    
+    const total = await prisma.customer.count({ where });
 
-    res.json({ items });
+    res.json({ 
+      data: items,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+      totalResults: total,
+    });
   } catch (err) {
     next(err);
   }
 }
 
-/** POST /api/v1/customers  body: { name, email?, phone? } */
 export async function createCustomer(req, res, next) {
   try {
     const { name, email, phone } = req.body || {};
@@ -43,7 +72,6 @@ export async function createCustomer(req, res, next) {
   }
 }
 
-/** PATCH/PUT /api/v1/customers/:id */
 export async function updateCustomer(req, res, next) {
   try {
     const { id } = req.params;
@@ -63,7 +91,6 @@ export async function updateCustomer(req, res, next) {
   }
 }
 
-/** DELETE /api/v1/customers/:id */
 export async function deleteCustomer(req, res, next) {
   try {
     const { id } = req.params;
@@ -75,7 +102,6 @@ export async function deleteCustomer(req, res, next) {
   }
 }
 
-/** PATCH /api/v1/customers/:id/disable */
 export async function disableCustomer(req, res, next) {
   try {
     const { id } = req.params;
@@ -87,7 +113,6 @@ export async function disableCustomer(req, res, next) {
   }
 }
 
-/** PATCH /api/v1/customers/:id/enable */
 export async function enableCustomer(req, res, next) {
   try {
     const { id } = req.params;
@@ -99,7 +124,6 @@ export async function enableCustomer(req, res, next) {
   }
 }
 
-/** GET /api/v1/customers/:id/balance */
 export async function getCustomerBalance(req, res, next) {
   try {
     const { id } = req.params;
@@ -126,7 +150,6 @@ export async function getCustomerBalance(req, res, next) {
   }
 }
 
-/** POST /api/v1/customers/:id/payments  body: { amount, method?, reference? } */
 export async function addCustomerPayment(req, res, next) {
   try {
     const { id } = req.params;
@@ -155,12 +178,9 @@ export async function addCustomerPayment(req, res, next) {
   }
 }
 
-/** GET /api/v1/customers/:id/activity  (ventas + pagos + saldo) */
 export async function getCustomerActivity(req, res, next) {
   try {
     const { id } = req.params;
-
-    // Ventas con total por venta
     const sales = await prisma.$queryRaw`
       SELECT s.id, s."createdAt" as date, 'SALE' as kind,
              COALESCE(SUM(si."quantity" * si."unitPrice"), 0)::DECIMAL(12,2) as amount,
@@ -173,7 +193,6 @@ export async function getCustomerActivity(req, res, next) {
       LIMIT 50
     `;
 
-    // Pagos
     const payments = await prisma.$queryRaw`
       SELECT p.id, p."createdAt" as date, 'PAYMENT' as kind,
              p.amount::DECIMAL(12,2) as amount,
@@ -184,7 +203,6 @@ export async function getCustomerActivity(req, res, next) {
       LIMIT 50
     `;
 
-    // Saldo actual
     const [salesAgg] = await prisma.$queryRaw`
       SELECT COALESCE(SUM(si."quantity" * si."unitPrice"), 0)::DECIMAL(12,2) AS total
       FROM "Sale" s

@@ -1,10 +1,15 @@
 import { Router } from "express";
 import { verifyToken } from "../middleware/auth.js";
-import { lowStock } from "../controllers/reports.controller.js";
+import { 
+  lowStock, 
+  recentPurchases,
+  recentSales
+} from "../controllers/reports.controller.js";
 
 const router = Router();
 
-router.get("/low-stock", verifyToken, lowStock);
-
+router.use(verifyToken);
+router.get("/low-stock", lowStock);
+router.get("/recent-purchases", recentPurchases);
+router.get("/recent-sales", recentSales);
 export default router;
-

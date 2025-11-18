@@ -67,10 +67,12 @@ model InventoryMovement {
 }
 
 model Purchase {
-  id          String         @id @default(uuid())
-  supplier    String?
+  id          String   @id @default(uuid())
   createdById String
-  createdAt   DateTime       @default(now())
+  createdAt   DateTime @default(now())
+  supplierId  String?
+  supplierRel Supplier? @relation("PurchaseSupplier", fields: [supplierId], references: [id])
+
   items       PurchaseItem[]
 }
 
@@ -114,6 +116,19 @@ model Customer {
   createdAt DateTime  @default(now())
   payments  Payment[]
   sales     Sale[]    @relation("SaleCustomer")
+}
+
+model Supplier {
+  id        String    @id @default(uuid())
+  name      String
+  email     String?   @unique
+  phone     String?
+  cuit      String?   @unique // CUIT o ID Fiscal
+  address   String?   // Dirección
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  
+  purchases Purchase[] @relation("PurchaseSupplier") // Relación con Compras
 }
 
 model Payment {
