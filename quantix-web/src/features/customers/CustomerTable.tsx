@@ -26,22 +26,10 @@ const Row = memo(function Row({
     const v = Number(balance ?? 0);
     const abs = Math.abs(v).toFixed(2);
 
-    if (v > 0) {
-      return {
-        amountText: `$${abs}`,
-        amountClass: "text-error font-semibold",
-      };
-    }
-    if (v < 0) {
-      return {
-        amountText: `$${abs}`,
-        amountClass: "text-accent font-semibold",
-      };
-    }
-    return {
-      amountText: "$0.00",
-      amountClass: "text-muted-foreground font-semibold",
-    };
+    if (v > 0) return { amountText: `$${abs}`, amountClass: "text-error font-semibold" };
+    if (v < 0) return { amountText: `$${abs}`, amountClass: "text-accent font-semibold" };
+
+    return { amountText: "$0.00", amountClass: "text-muted-foreground font-semibold" };
   }, [balance, isLoading]);
 
   const toggle = async () => {
@@ -59,13 +47,16 @@ const Row = memo(function Row({
       <TableCell className="font-medium text-foreground">{c.name}</TableCell>
       <TableCell className="text-muted-foreground">{c.email ?? <Badge variant="outline">—</Badge>}</TableCell>
       <TableCell className="text-muted-foreground">{c.phone ?? <Badge variant="outline">—</Badge>}</TableCell>
-      
+
+      {/* 🆕 DIRECCIÓN */}
+      <TableCell className="text-muted-foreground">{c.address ?? <Badge variant="outline">—</Badge>}</TableCell>
+
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-2">
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           ) : (
-             <span className={saldoClass}>{saldoAmount}</span>
+            <span className={saldoClass}>{saldoAmount}</span>
           )}
         </div>
       </TableCell>
@@ -133,7 +124,7 @@ type Props = {
 };
 
 export const CustomerTable = ({ data, isLoading, search, onView, onEdit, onToggleActive }: Props) => {
-  
+
   const customers = data?.data ?? [];
   const filtered = useMemo(() => {
     const q = (search ?? "").toLowerCase();
@@ -154,6 +145,10 @@ export const CustomerTable = ({ data, isLoading, search, onView, onEdit, onToggl
             <TableHead className="text-foreground font-semibold">Nombre</TableHead>
             <TableHead className="text-foreground font-semibold">Email</TableHead>
             <TableHead className="text-foreground font-semibold">Teléfono</TableHead>
+
+            {/* 🆕 HEADER DIRECCIÓN */}
+            <TableHead className="text-foreground font-semibold">Dirección</TableHead>
+
             <TableHead className="text-foreground font-semibold text-right">Saldo</TableHead>
             <TableHead className="text-foreground font-semibold text-center">Estado</TableHead>
             <TableHead className="text-foreground font-semibold text-right">Acciones</TableHead>
@@ -163,7 +158,7 @@ export const CustomerTable = ({ data, isLoading, search, onView, onEdit, onToggl
         <TableBody>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                 <Loader2 className="w-5 h-5 inline animate-spin mr-2" />
                 Cargando...
               </TableCell>
@@ -172,7 +167,7 @@ export const CustomerTable = ({ data, isLoading, search, onView, onEdit, onToggl
 
           {!isLoading && filtered.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                 {search ? "No se encontraron clientes" : "Sin clientes"}
               </TableCell>
             </TableRow>

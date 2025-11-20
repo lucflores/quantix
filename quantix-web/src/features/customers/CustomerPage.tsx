@@ -29,12 +29,15 @@ export const CustomersPage = () => {
     data: customersResponse, 
     isLoading 
   } = useCustomers(page, limit, search); 
+
   const totalPages = customersResponse?.totalPages ?? 1;
+
   const nextPage = () => {
     if (page < totalPages) {
       setPage(page + 1);
     }
   };
+
   const prevPage = () => {
     if (page > 1) {
       setPage(page - 1);
@@ -83,6 +86,7 @@ export const CustomersPage = () => {
             />
           </div>
         </div>
+
         <CustomerTable
           data={customersResponse}
           isLoading={isLoading}
@@ -124,6 +128,8 @@ export const CustomersPage = () => {
               {editing ? "Editar Cliente" : "Nuevo Cliente"}
             </DialogTitle>
           </DialogHeader>
+
+          {/* 👇 ACÁ ESTABA EL PROBLEMA — YA ARREGLADO */}
           <CustomerForm
             defaultValues={
               editing
@@ -132,13 +138,16 @@ export const CustomersPage = () => {
                     name: editing.name,
                     email: editing.email ?? "",
                     phone: editing.phone ?? "",
+                    address: editing.address ?? "",   // ✅ LÍNEA AGREGADA
                   }
                 : undefined
             }
             onClose={() => setOpen(false)}
           />
+
         </DialogContent>
       </Dialog>
+
       <CustomerDetails
         open={!!viewing}
         onOpenChange={(v) => !v && setViewing(null)}

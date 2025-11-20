@@ -19,16 +19,13 @@ interface MovementsTableProps {
 }
 
 export const MovementsTable = ({ filters }: MovementsTableProps) => {
-  // 🔥 React Query reemplaza el fetch manual
   const { data: movements = [], isLoading } = useMovements();
 
-  // 🔎 Aplicar filtros
   const filteredMovements = movements.filter((m: any) => {
     if (filters.type !== 'all' && m.kind !== filters.type) return false;
     return true;
   });
 
-  // ⏳ Loading
   if (isLoading) {
     return (
       <div className="p-6 text-center text-muted-foreground">
@@ -48,7 +45,8 @@ export const MovementsTable = ({ filters }: MovementsTableProps) => {
             <TableHead className="text-foreground font-semibold text-center">
               Cantidad
             </TableHead>
-            <TableHead className="text-foreground font-semibold">Usuario</TableHead>
+
+            {/* <TableHead className="text-foreground font-semibold">Usuario</TableHead> */}
           </TableRow>
         </TableHeader>
 
@@ -95,9 +93,7 @@ export const MovementsTable = ({ filters }: MovementsTableProps) => {
                   {m.quantity}
                 </TableCell>
 
-                <TableCell className="text-muted-foreground">
-                  {m.userName}
-                </TableCell>
+                {/* <TableCell className="text-muted-foreground">{m.userName}</TableCell> */}
               </TableRow>
             ))
           )}

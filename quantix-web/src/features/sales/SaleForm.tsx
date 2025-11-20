@@ -12,19 +12,36 @@ import { useCreateSale } from './hooks/useSales';
 export const SaleForm = () => {
   const [paymentMethod, setPaymentMethod] = useState<'EFECTIVO' | 'CTA_CTE'>('EFECTIVO');
   const [customerId, setCustomerId] = useState<string>('');
-  const [items, setItems] = useState<Array<{ productId: string; quantity: string }>>([
-    { productId: '', quantity: '' },
+  const [items, setItems] = useState<Array<{ productId: string; quantity: string; price: string }>>([
+    { productId: '', quantity: '', price: '' },
   ]);
+
   const { data: productsData, isLoading: loadingProducts } = useAllProducts();
   const { data: customersData, isLoading: loadingCustomers } = useAllCustomers();
   const { mutateAsync: createSale, isPending } = useCreateSale();
+
   const productList = productsData || [];
   const customerList = customersData || [];
-  const addItem = () => setItems((prev) => [...prev, { productId: '', quantity: '' }]);
-  const removeItem = (index: number) => setItems((prev) => prev.filter((_, i) => i !== index));
-  const handleItemChange = (index: number, field: 'productId' | 'quantity', value: string) => {
+
+  const addItem = () =>
+    setItems((prev) => [...prev, { productId: '', quantity: '', price: '' }]);
+
+  const removeItem = (index: number) =>
+    setItems((prev) => prev.filter((_, i) => i !== index));
+
+  const handleItemChange = (
+    index: number,
+    field: 'productId' | 'quantity' | 'price',
+    value: string
+  ) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
+
+    if (field === 'productId') {
+      const p = productList.find((x) => x.id === value);
+      if (p) newItems[index].price = p.price.toString();
+    }
+
     setItems(newItems);
   };
 
@@ -32,22 +49,13 @@ export const SaleForm = () => {
     e.preventDefault();
 
     if (paymentMethod === 'CTA_CTE' && !customerId) {
-      toast.error('Debe seleccionar un cliente para cuenta corriente');
+      toast.error('Debe seleccionar un cliente');
       return;
     }
+
     for (const it of items) {
-      if (!it.productId) {
-        toast.error('Seleccioná un producto en cada línea');
-        return;
-      }
-      const qty = parseFloat(it.quantity);
-      if (isNaN(qty) || qty <= 0) {
-        toast.error('La cantidad debe ser un número mayor a 0');
-        return;
-      }
-      const p = productList.find((x) => x.id === it.productId);
-      if (!p) {
-        toast.error('Producto inválido');
+      if (!it.productId || !it.price) {
+        toast.error('Completá los datos');
         return;
       }
     }
@@ -56,22 +64,18 @@ export const SaleForm = () => {
       const payload = {
         payment: paymentMethod,
         customerId: paymentMethod === 'CTA_CTE' ? customerId : undefined,
-        items: items.map((it) => {
-          const p = productList.find((x) => x.id === it.productId)!;
-          return { 
-            productId: it.productId, 
-            quantity: parseFloat(it.quantity), 
-            unitPrice: parseFloat(p.price as string) 
-          };
-        }),
+        items: items.map((it) => ({
+          productId: it.productId,
+          quantity: parseFloat(it.quantity),
+          unitPrice: parseFloat(it.price),
+        })),
       };
-      
+
       await createSale(payload);
 
       setPaymentMethod('EFECTIVO');
       setCustomerId('');
-      setItems([{ productId: '', quantity: '' }]);
-      
+      setItems([{ productId: '', quantity: '', price: '' }]);
     } catch (err: any) {
       const msg = err?.response?.data?.error || 'No se pudo registrar la venta';
       toast.error(msg);
@@ -84,8 +88,8 @@ export const SaleForm = () => {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
         <Label>Método de Pago</Label>
-        <Select 
-          value={paymentMethod} 
+        <Select
+          value={paymentMethod}
           onValueChange={(v) => setPaymentMethod(v as any)}
           disabled={formDisabled}
         >
@@ -102,13 +106,15 @@ export const SaleForm = () => {
       {paymentMethod === 'CTA_CTE' && (
         <div className="space-y-2">
           <Label>Cliente *</Label>
-          <Select 
-            value={customerId} 
+          <Select
+            value={customerId}
             onValueChange={setCustomerId}
             disabled={formDisabled}
           >
             <SelectTrigger className="bg-input border-border">
-              <SelectValue placeholder={loadingCustomers ? 'Cargando...' : 'Seleccionar cliente'} />
+              <SelectValue
+                placeholder={loadingCustomers ? 'Cargando...' : 'Seleccionar cliente'}
+              />
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
               {customerList.map((c) => (
@@ -123,16 +129,18 @@ export const SaleForm = () => {
 
       <div className="space-y-3">
         <Label>Productos</Label>
+
         {items.map((item, index) => (
           <div key={index} className="flex gap-2">
-            
             <Select
               value={item.productId}
               onValueChange={(val) => handleItemChange(index, 'productId', val)}
               disabled={formDisabled}
             >
               <SelectTrigger className="flex-1 bg-input border-border">
-                <SelectValue placeholder={loadingProducts ? 'Cargando...' : 'Seleccionar producto'} />
+                <SelectValue
+                  placeholder={loadingProducts ? 'Cargando...' : 'Seleccionar producto'}
+                />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border">
                 {productList.map((p) => (
@@ -147,10 +155,23 @@ export const SaleForm = () => {
               type="number"
               placeholder="Cant."
               value={item.quantity}
-              onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-              className="w-24 bg-input border-border"
+              onChange={(e) =>
+                handleItemChange(index, 'quantity', e.target.value)
+              }
+              className="w-20 bg-input border-border"
               min="0.001"
               step="0.001"
+              disabled={formDisabled}
+            />
+
+            <Input
+              type="number"
+              placeholder="Precio"
+              value={item.price}
+              onChange={(e) => handleItemChange(index, 'price', e.target.value)}
+              className="w-24 bg-input border-border"
+              min="0.01"
+              step="0.01"
               disabled={formDisabled}
             />
 
@@ -167,11 +188,11 @@ export const SaleForm = () => {
           </div>
         ))}
 
-        <Button 
-          type="button" 
-          variant="outline" 
-          size="sm" 
-          onClick={addItem} 
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addItem}
           className="w-full"
           disabled={formDisabled}
         >

@@ -1,36 +1,37 @@
 import { prisma } from "../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 
-
 const d2 = (v) =>
   v instanceof Prisma.Decimal ? v.toFixed(2) : new Prisma.Decimal(v ?? 0).toFixed(2);
 
 export async function listCustomers(req, res, next) {
   try {
     const { q, page, limit, mode } = req.query;
-    if (mode === 'list') {
+    if (mode === "list") {
       const items = await prisma.customer.findMany({
         where: { active: true },
-        orderBy: { name: 'asc' },
-        select: { 
-          id: true, 
-          name: true 
-        } 
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+        },
       });
       return res.json({ items });
     }
+
     const pageNum = Math.max(parseInt(String(page || "1"), 10), 1);
     const limitNum = Math.min(Math.max(parseInt(String(limit || "20"), 10), 1), 100);
     const skip = (pageNum - 1) * limitNum;
     const query = (q || "").toString().trim();
 
     const where = query
-      ? { 
+      ? {
           OR: [
             { name: { contains: query, mode: "insensitive" } },
             { email: { contains: query, mode: "insensitive" } },
-            { phone: { contains: query, mode: "insensitive" } }
-          ]
+            { phone: { contains: query, mode: "insensitive" } },
+            { address: { contains: query, mode: "insensitive" } },
+          ],
         }
       : {};
 
@@ -40,10 +41,10 @@ export async function listCustomers(req, res, next) {
       take: limitNum,
       orderBy: { createdAt: "desc" },
     });
-    
+
     const total = await prisma.customer.count({ where });
 
-    res.json({ 
+    res.json({
       data: items,
       page: pageNum,
       limit: limitNum,
@@ -57,12 +58,14 @@ export async function listCustomers(req, res, next) {
 
 export async function createCustomer(req, res, next) {
   try {
-    const { name, email, phone } = req.body || {};
+    const { name, email, phone, address } = req.body || {};
     if (!name) return res.status(400).json({ error: "name es obligatorio" });
 
     const data = { name, active: true };
+
     if (email) data.email = String(email).trim().toLowerCase();
     if (phone) data.phone = String(phone).trim();
+    if (address) data.address = String(address).trim();
 
     const created = await prisma.customer.create({ data });
     res.status(201).json(created);
@@ -75,12 +78,14 @@ export async function createCustomer(req, res, next) {
 export async function updateCustomer(req, res, next) {
   try {
     const { id } = req.params;
-    const { name, email, phone } = req.body || {};
+    const { name, email, phone, address } = req.body || {};
     if (!name) return res.status(400).json({ error: "name es obligatorio" });
 
     const data = { name };
+
     if (email !== undefined) data.email = email ? String(email).trim().toLowerCase() : null;
     if (phone !== undefined) data.phone = phone ? String(phone).trim() : null;
+    if (address !== undefined) data.address = address ? String(address).trim() : null;
 
     const updated = await prisma.customer.update({ where: { id }, data });
     return res.json(updated);
@@ -105,7 +110,10 @@ export async function deleteCustomer(req, res, next) {
 export async function disableCustomer(req, res, next) {
   try {
     const { id } = req.params;
-    const updated = await prisma.customer.update({ where: { id }, data: { active: false } });
+    const updated = await prisma.customer.update({
+      where: { id },
+      data: { active: false },
+    });
     res.json(updated);
   } catch (err) {
     if (err?.code === "P2025") return res.status(404).json({ error: "Cliente no encontrado" });
@@ -116,7 +124,10 @@ export async function disableCustomer(req, res, next) {
 export async function enableCustomer(req, res, next) {
   try {
     const { id } = req.params;
-    const updated = await prisma.customer.update({ where: { id }, data: { active: true } });
+    const updated = await prisma.customer.update({
+      where: { id },
+      data: { active: true },
+    });
     res.json(updated);
   } catch (err) {
     if (err?.code === "P2025") return res.status(404).json({ error: "Cliente no encontrado" });
@@ -181,6 +192,7 @@ export async function addCustomerPayment(req, res, next) {
 export async function getCustomerActivity(req, res, next) {
   try {
     const { id } = req.params;
+
     const sales = await prisma.$queryRaw`
       SELECT s.id, s."createdAt" as date, 'SALE' as kind,
              COALESCE(SUM(si."quantity" * si."unitPrice"), 0)::DECIMAL(12,2) as amount,
@@ -209,6 +221,7 @@ export async function getCustomerActivity(req, res, next) {
       JOIN "SaleItem" si ON si."saleId" = s.id
       WHERE s."customerId" = ${id} AND s.payment = 'CTA_CTE'
     `;
+
     const [paymentsAgg] = await prisma.$queryRaw`
       SELECT COALESCE(SUM(p.amount), 0)::DECIMAL(12,2) AS total
       FROM "Payment" p
